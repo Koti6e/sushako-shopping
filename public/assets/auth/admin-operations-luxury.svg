@@ -1,0 +1,26 @@
+<svg width="1600" height="1100" viewBox="0 0 1600 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1100" fill="#0F1B33"/>
+  <path d="M0 0H1600V1100H0V0Z" fill="url(#paint0_radial)"/>
+  <path d="M112 176H830V806H112V176Z" fill="#FFFDF8" fill-opacity="0.06" stroke="#F2DFB0" stroke-opacity="0.22" stroke-width="2"/>
+  <path d="M174 262H520" stroke="#C59A3D" stroke-width="8" stroke-linecap="square"/>
+  <path d="M174 334H748" stroke="#FFFDF8" stroke-opacity="0.34" stroke-width="18"/>
+  <path d="M174 398H672" stroke="#FFFDF8" stroke-opacity="0.2" stroke-width="18"/>
+  <path d="M174 510H306V680H174V510Z" fill="#2F6B4F"/>
+  <path d="M348 450H480V680H348V450Z" fill="#C59A3D"/>
+  <path d="M522 558H654V680H522V558Z" fill="#275F8F"/>
+  <path d="M696 374H760V680H696V374Z" fill="#F2DFB0"/>
+  <path d="M996 176H1486V806H996V176Z" fill="#FFFDF8" fill-opacity="0.08" stroke="#F2DFB0" stroke-opacity="0.28" stroke-width="2"/>
+  <circle cx="1115" cy="315" r="68" fill="#C59A3D" fill-opacity="0.85"/>
+  <circle cx="1330" cy="315" r="68" fill="#2F6B4F" fill-opacity="0.9"/>
+  <path d="M1066 480H1416" stroke="#FFFDF8" stroke-opacity="0.5" stroke-width="14"/>
+  <path d="M1066 550H1360" stroke="#FFFDF8" stroke-opacity="0.36" stroke-width="14"/>
+  <path d="M1066 620H1448" stroke="#FFFDF8" stroke-opacity="0.24" stroke-width="14"/>
+  <path d="M0 960L1600 650V1100H0V960Z" fill="#050914" fill-opacity="0.55"/>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1120 260) rotate(135) scale(1050 820)">
+      <stop stop-color="#275F8F"/>
+      <stop offset="0.45" stop-color="#14213D"/>
+      <stop offset="1" stop-color="#050914"/>
+    </radialGradient>
+  </defs>
+</svg>
