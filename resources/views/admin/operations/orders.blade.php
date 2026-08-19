@@ -1,38 +1,15 @@
 <x-layouts.admin title="Orders - Admin">
-    <section class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav>
-                <a href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
-                <a href="{{ route('admin.products.index') }}"><i class="fa-solid fa-box"></i> Products</a>
-                <a href="{{ route('admin.inventory.index') }}"><i class="fa-solid fa-warehouse"></i> Inventory</a>
-                <a href="{{ route('admin.orders.index') }}"><i class="fa-solid fa-receipt"></i> Orders</a>
-                <a href="{{ route('admin.customers.index') }}"><i class="fa-solid fa-users"></i> Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-
-        <main class="admin-main">
-            <header class="admin-topbar admin-topbar--premium">
-                <div>
-                    <span>Order Management</span>
-                    <strong>Pack, ship, deliver</strong>
-                </div>
-                <div class="admin-topbar-actions">
-                    <a class="button button--secondary" href="{{ route('admin.orders.index') }}">Order Queue</a>
-                    <form class="admin-global-logout admin-global-logout--top" method="POST" action="{{ route('admin.logout') }}">
-                        @csrf
-                        <button type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout</button>
-                    </form>
-                </div>
-            </header>
+    <x-admin.shell title="Orders">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.shipping-labels.index')" tone="secondary" icon="fa-solid fa-tags">Labels</x-admin.action>
+            <x-admin.action :href="route('admin.orders.index')" tone="primary" icon="fa-solid fa-arrows-rotate">Refresh</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
+                @include('admin.shipping-labels.partials.orders-nav')
+
                 <div class="section-heading">
                     <div>
-                        <p class="eyebrow">Realtime Orders</p>
                         <h1>Order Queue</h1>
-                        <p class="lede">Track Sushako store orders by stage. New orders blink softly because they need immediate action.</p>
                     </div>
                 </div>
 
@@ -97,6 +74,5 @@
                     {{ $orders->links() }}
                 </section>
             </section>
-        </main>
-    </section>
+    </x-admin.shell>
 </x-layouts.admin>

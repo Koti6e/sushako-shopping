@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="220" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">Sushako Shopping monochrome logo</title>
+  <desc id="desc">Monochrome print-safe Sushako Shopping logo.</desc>
+  <g fill="none" stroke="#111827">
+    <g transform="translate(26 20)">
+      <path d="M36 65h111l14 104c1.3 9.9-6.4 18.6-16.4 18.6H38.4c-10 0-17.7-8.7-16.4-18.6L36 65Z" fill="#fff" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M55 69c0-28.5 17.8-49 36.5-49S128 40.5 128 69" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="61" cy="78" r="8" fill="#111827" stroke="none"/>
+      <circle cx="122" cy="78" r="8" fill="#111827" stroke="none"/>
+    </g>
+  </g>
+  <text x="214" y="123" fill="#111827" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700">Sushako</text>
+  <text x="220" y="173" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" letter-spacing="16">SHOPPING</text>
+</svg>

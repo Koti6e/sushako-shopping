@@ -6,9 +6,12 @@ use App\Models\Category;
 use App\Models\CompanySetting;
 use App\Models\InvoiceSetting;
 use App\Models\Product;
+use App\Models\SellerPlan;
 use App\Models\ShippingSetting;
 use App\Models\TaxSlab;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Services\OfficialStoreService;
 use App\Services\OperationalSettingsService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -29,10 +32,72 @@ class DatabaseSeeder extends Seeder
 
         $this->deactivateLegacyMarketplaceAccounts();
         $this->seedOperationalSettings();
+        $this->seedSellerPlans();
 
         $this->seedUser(env('SUSHAKO_SUPER_ADMIN_EMAIL', 'superadmin@sushako.test'), 'Sushako Super Admin', '9000000001', User::ROLE_SUPER_ADMIN, $password);
         $this->seedUser(env('SUSHAKO_CUSTOMER_EMAIL', 'customer@sushako.test'), 'Sushako Customer', '9000000002', User::ROLE_CUSTOMER, $password);
+        app(OfficialStoreService::class)->ensure(User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('status', User::STATUS_ACTIVE)->first());
         $this->seedCatalog();
+    }
+
+    private function seedSellerPlans(): void
+    {
+        if (! Schema::hasTable('seller_plans')) {
+            return;
+        }
+
+        foreach ([
+            [
+                'name' => 'Free',
+                'slug' => 'free',
+                'price' => 0,
+                'billing_period' => 'none',
+                'product_limit' => 25,
+                'unlimited_products' => false,
+                'order_limit' => 'Unlimited',
+                'commission_type' => 'flat',
+                'commission_value' => 1,
+                'is_paid' => false,
+                'grace_period_days' => 0,
+                'status' => SellerPlan::STATUS_ACTIVE,
+                'features' => ['Unlimited time', 'Rs 1 commission on every product unit sold', 'Self shipping', 'Draft to published workflow', 'Professional dashboard'],
+                'supporting_text' => 'Start free for unlimited time with a simple Rs 1 unit commission.',
+            ],
+            [
+                'name' => 'Growth',
+                'slug' => 'growth',
+                'price' => 999,
+                'billing_period' => 'monthly',
+                'product_limit' => 100,
+                'unlimited_products' => false,
+                'order_limit' => 'Unlimited',
+                'commission_type' => 'none',
+                'commission_value' => 0,
+                'is_paid' => true,
+                'grace_period_days' => 0,
+                'status' => SellerPlan::STATUS_ACTIVE,
+                'features' => ['Up to 100 products', 'Unlimited orders', 'Zero commission on orders', 'Advanced seller dashboard', 'Professional storefront', 'Sales and order reports', 'Marketing tools', 'Seller labelling features available as an add-on', 'Priority support', 'One-month plan validity'],
+                'supporting_text' => 'Built for growing sellers who want predictable monthly pricing and no commission on orders.',
+            ],
+            [
+                'name' => 'Enterprise',
+                'slug' => 'enterprise',
+                'price' => 4999,
+                'billing_period' => 'monthly',
+                'product_limit' => null,
+                'unlimited_products' => true,
+                'order_limit' => 'Unlimited',
+                'commission_type' => 'none',
+                'commission_value' => 0,
+                'is_paid' => true,
+                'grace_period_days' => 5,
+                'status' => SellerPlan::STATUS_ACTIVE,
+                'features' => ['Unlimited products', 'Unlimited orders', 'Zero commission', 'Complete storefront branding', 'Advanced analytics', 'Premium reports', 'Marketing tools', 'Seller labelling included', 'Priority support', 'Settlement insights', 'Five-day renewal grace period', 'One-month plan validity'],
+                'supporting_text' => 'A complete premium selling suite for established businesses that need scale, branding, and operational control.',
+            ],
+        ] as $plan) {
+            SellerPlan::query()->updateOrCreate(['slug' => $plan['slug']], $plan);
+        }
     }
 
     private function deactivateLegacyMarketplaceAccounts(): void
@@ -175,7 +240,9 @@ class DatabaseSeeder extends Seeder
     private function seedStagingProduct(): void
     {
         $category = Category::query()->where('slug', 'home-made-health-mix')->firstOrFail();
+        $officialStore = Vendor::query()->where('slug', OfficialStoreService::SLUG)->first();
         $product = Product::query()->create([
+            'vendor_id' => $officialStore?->id,
             'category_id' => $category->id,
             'name' => 'Sushako Staging Sample Product',
             'slug' => 'sushako-razorpay-test-product',
@@ -228,9 +295,11 @@ class DatabaseSeeder extends Seeder
     private function seedLenovoLaptop(): void
     {
         $category = Category::query()->where('slug', 'electronics')->firstOrFail();
+        $officialStore = Vendor::query()->where('slug', OfficialStoreService::SLUG)->first();
         $product = Product::query()->updateOrCreate([
             'slug' => 'lenovo-100e-celeron-laptop',
         ], [
+            'vendor_id' => $officialStore?->id,
             'category_id' => $category->id,
             'name' => 'Lenovo 100e Celeron Laptop',
             'collection' => 'Sushako Budget Tech',
@@ -255,6 +324,7 @@ class DatabaseSeeder extends Seeder
             'is_best_seller' => true,
             'local_delivery' => true,
             'fulfillment_scope' => 'Sushako Electronics Fulfillment',
+            'seller_status' => Product::SELLER_STATUS_APPROVED,
             'sort_order' => 10,
         ]);
 

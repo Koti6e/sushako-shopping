@@ -1,8 +1,5 @@
 <x-layouts.admin title="Tax Settings - Admin">
-    <div class="admin-shell">
-        @include('admin.settings.partials.sidebar')
-        <main class="admin-main">
-            <header class="admin-topbar admin-topbar--premium"><div><span>Settings</span><strong>GST management</strong></div></header>
+    <x-admin.shell eyebrow="Settings" title="GST management" subtitle="Manage GST slabs and product assignments.">
             <section class="admin-dashboard-panel admin-settings-panel">
                 @include('admin.settings.partials.nav')
                 @if (session('status')) <div class="status-banner">{{ session('status') }}</div> @endif
@@ -64,6 +61,5 @@
                     <button class="button button--primary" type="submit">Save Tax Assignments</button>
                 </form>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

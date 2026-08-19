@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="220" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">Sushako Shopping</title>
+  <desc id="desc">Light Sushako Shopping wordmark with premium shopping bag mark for dark backgrounds.</desc>
+  <defs>
+    <linearGradient id="navy" x1="26" y1="30" x2="154" y2="178" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#244A75"/>
+      <stop offset=".58" stop-color="#0E2A4E"/>
+      <stop offset="1" stop-color="#07172C"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="24" y1="18" x2="168" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2BE"/>
+      <stop offset=".28" stop-color="#D9BF77"/>
+      <stop offset=".64" stop-color="#A57D3A"/>
+      <stop offset="1" stop-color="#F9DEA0"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <g transform="translate(26 20)">
+      <path d="M36 65h111l14 104c1.3 9.9-6.4 18.6-16.4 18.6H38.4c-10 0-17.7-8.7-16.4-18.6L36 65Z" fill="url(#navy)" stroke="url(#gold)" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M55 69c0-28.5 17.8-49 36.5-49S128 40.5 128 69" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M65 75c0-20 12.3-34.5 26.5-34.5S118 55 118 75" stroke="#FFF7DA" stroke-opacity=".48" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="61" cy="78" r="8" fill="#FFF4C9"/>
+      <circle cx="122" cy="78" r="8" fill="#FFF4C9"/>
+      <path d="M36 65h111l-9-20H46l-10 20Z" fill="#FFF7DA" fill-opacity=".16"/>
+      <path d="M68 30 54 17M118 28l15-14M92 19V3" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+      <path d="m54 17 10-4 8 8-11 9-7-13ZM133 14l-10-4-8 8 10 10 8-14ZM92 3l8 8-8 8-8-8 8-8Z" fill="#FFF4C9" stroke="#A57D3A" stroke-width="2"/>
+    </g>
+    <g transform="translate(214 45)">
+      <text x="0" y="78" fill="#FFFDF8" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" letter-spacing="0">Sushako</text>
+      <text x="6" y="128" fill="#E8CA82" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" letter-spacing="16">SHOPPING</text>
+      <path d="M5 148h390" stroke="#D6B96E" stroke-width="2" stroke-linecap="round" opacity=".62"/>
+    </g>
+  </g>
+</svg>

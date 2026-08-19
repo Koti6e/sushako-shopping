@@ -1,20 +1,9 @@
 <x-layouts.admin title="Categories - Admin">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav aria-label="Admin navigation">
-                <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-                <a href="{{ route('admin.categories.index') }}">Categories</a>
-                <a href="{{ route('admin.products.index') }}">Products</a>
-                <a href="{{ route('admin.inventory.index') }}">Inventory</a>
-                <a href="{{ route('admin.orders.index') }}">Orders</a>
-                <a href="{{ route('admin.customers.index') }}">Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-        <main class="admin-main">
-            <header class="admin-topbar"><x-brand.logo href="{{ route('admin.dashboard') }}" loading="eager" /><span>Categories</span></header>
+    <x-admin.shell eyebrow="Catalog Structure" title="Categories" subtitle="Manage storefront categories and merchandising structure.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.products.index')" tone="secondary" icon="fa-solid fa-box">Products</x-admin.action>
+            <x-admin.action :href="route('admin.categories.create')" tone="primary" icon="fa-solid fa-plus">Add Category</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
                 @if (session('status'))
                     <div class="status-banner">{{ session('status') }}</div>
@@ -24,7 +13,6 @@
                 @endif
                 <p class="eyebrow">Catalog Structure</p>
                 <h1>Categories</h1>
-                <a class="button button--primary" href="{{ route('admin.categories.create') }}">Add Category</a>
                 <div class="admin-table">
                     @foreach ($categories as $category)
                         <article>
@@ -43,6 +31,5 @@
                     @endforeach
                 </div>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

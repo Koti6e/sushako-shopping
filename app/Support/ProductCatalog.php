@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Vendor;
+use App\Services\OfficialStoreService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -80,7 +82,7 @@ class ProductCatalog
     {
         return [[
             'name' => 'Sushako Customer',
-            'avatar' => asset('images/brand/sushako-shopping-logo.png'),
+            'avatar' => asset('assets/brand/sushako-shopping-official-email.png'),
             'rating' => 5,
             'text' => 'The Sushako store feels warm, polished and easy to shop with clear support whenever needed.',
         ]];
@@ -144,7 +146,7 @@ class ProductCatalog
         $needle = mb_strtolower($query);
 
         return self::products()->filter(function (array $product) use ($needle): bool {
-            return str_contains(mb_strtolower($product['name'].' '.$product['department'].' '.$product['subcategory'].' '.$product['brand'].' '.$product['collection']), $needle);
+            return str_contains(mb_strtolower($product['name'].' '.$product['department'].' '.$product['subcategory'].' '.$product['brand'].' '.$product['collection'].' '.$product['seller_name']), $needle);
         })->values();
     }
 
@@ -195,7 +197,7 @@ class ProductCatalog
 
     public static function productArray(Product $product): array
     {
-        $product->loadMissing(['category', 'images', 'variants']);
+        $product->loadMissing(['category', 'images', 'variants', 'vendor']);
 
         $variants = $product->variants->sortBy(fn (ProductVariant $variant): string => $variant->colour.'|'.$variant->size)->values();
         $variantOptionName = $variants->pluck('option_name')->filter()->first();
@@ -209,6 +211,7 @@ class ProductCatalog
             ->all();
         $displaySellingPrice = $variantPrices ? min($variantPrices) : (int) $product->selling_price;
         $displayMrp = max((int) $product->mrp, $variantPrices ? max($variantPrices) : (int) $product->mrp);
+        $hasVariantPriceRange = $variantPrices && min($variantPrices) !== max($variantPrices);
         $colours = $variants
             ->groupBy('colour')
             ->mapWithKeys(fn (Collection $items, string $colour): array => [
@@ -236,6 +239,7 @@ class ProductCatalog
         }
 
         $stock = (int) $variants->sum('stock');
+        $scheduled = $product->seller_status === Product::SELLER_STATUS_SCHEDULED && $product->scheduled_go_live_at?->isFuture();
         $discount = $displayMrp > $displaySellingPrice ? (int) round((($displayMrp - $displaySellingPrice) / $displayMrp) * 100) : 0;
         $details = $product->category->slug === 'electronics' ? [
             'Processor' => $product->fabric ?: 'Intel Celeron',
@@ -265,6 +269,13 @@ class ProductCatalog
             'category_slug' => $product->category->slug,
             'subcategory' => $product->subcategory ?: $product->category->name,
             'brand' => $product->brand,
+            'seller_name' => $product->vendor?->store_display_name ?: $product->vendor?->business_name ?: 'Sushako Store',
+            'seller_slug' => $product->vendor?->slug,
+            'seller_city' => $product->vendor?->city,
+            'seller_verified' => $product->vendor?->store_status === Vendor::STORE_LIVE,
+            'seller_official' => app(OfficialStoreService::class)->isOfficial($product->vendor),
+            'seller_trust_label' => app(OfficialStoreService::class)->isOfficial($product->vendor) ? 'Official Store' : ($product->vendor?->store_status === Vendor::STORE_LIVE ? 'Verified Seller' : null),
+            'delivery_label' => session('delivery_location') ? ((bool) $product->local_delivery ? 'Delivery available' : 'Check delivery availability') : 'Set location to check delivery',
             'badge' => $product->badge,
             'short_description' => $product->short_description,
             'full_description' => $product->full_description,
@@ -275,13 +286,17 @@ class ProductCatalog
             'occasion' => $product->occasion ?: 'Everyday Shopping',
             'country_of_origin' => $product->country_of_origin,
             'return_policy' => $product->return_policy,
+            'seller_return_policy' => $product->vendor?->return_policy_summary ?: $product->return_policy,
             'mrp' => $displayMrp,
             'selling_price' => $displaySellingPrice,
             'discount' => $discount,
             'rating' => number_format($product->rating, 1),
             'reviews' => $product->reviews,
-            'stock_label' => $stock > 0 ? ($stock <= 5 ? "Only {$stock} left" : 'In Stock') : 'Out of Stock',
-            'available' => $stock > 0,
+            'stock_label' => $scheduled ? 'Coming Soon' : ($stock > 0 ? ($stock <= 5 ? "Only {$stock} left" : 'In Stock') : 'Out of Stock'),
+            'available' => $stock > 0 && ! $scheduled,
+            'coming_soon' => $scheduled,
+            'go_live_at' => $product->scheduled_go_live_at?->toIso8601String(),
+            'go_live_label' => $product->scheduled_go_live_at?->format('d M Y, h:i A'),
             'local_delivery' => (bool) $product->local_delivery,
             'fulfillment_scope' => $product->fulfillment_scope,
             'is_new' => (bool) $product->is_new,
@@ -291,6 +306,7 @@ class ProductCatalog
             'has_colour_options' => $hasColourOptions,
             'has_size_options' => $hasSizeOptions,
             'has_custom_options' => $hasCustomOptions,
+            'has_variant_price_range' => $hasVariantPriceRange,
             'option_name' => $variantOptionName,
             'option_values' => $optionValues,
             'variant_prices' => $variantPrices,
@@ -359,9 +375,24 @@ class ProductCatalog
     private static function productQuery(): Builder
     {
         return Product::query()
-            ->with(['category', 'images', 'variants'])
+            ->with(['category', 'images', 'variants', 'vendor'])
             ->where('is_published', true)
-            ->whereHas('category', fn (Builder $query) => $query->where('is_active', true));
+            ->whereIn('seller_status', [Product::SELLER_STATUS_APPROVED, Product::SELLER_STATUS_ACTIVE, Product::SELLER_STATUS_SCHEDULED])
+            ->whereHas('category', fn (Builder $query) => $query->where('is_active', true))
+            ->whereHas('vendor', fn (Builder $query) => $query
+                ->where('store_status', Vendor::STORE_LIVE)
+                ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
+            ->where(function (Builder $query): void {
+                foreach (['staging', 'test', 'sample'] as $blocked) {
+                    $query
+                        ->where('name', 'not like', '%'.$blocked.'%')
+                        ->where('slug', 'not like', '%'.$blocked.'%')
+                        ->where('badge', 'not like', '%'.$blocked.'%')
+                        ->where('collection', 'not like', '%'.$blocked.'%')
+                        ->where('subcategory', 'not like', '%'.$blocked.'%');
+                }
+            })
+            ->whereHas('variants');
     }
 
     private static function colourHex(string $colour): string

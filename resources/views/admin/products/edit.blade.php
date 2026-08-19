@@ -1,24 +1,9 @@
 <x-layouts.admin title="Edit Product - Admin">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav aria-label="Admin navigation">
-                <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-                <a href="{{ route('admin.categories.index') }}">Categories</a>
-                <a href="{{ route('admin.products.index') }}">Products</a>
-                <a href="{{ route('admin.inventory.index') }}">Inventory</a>
-                <a href="{{ route('admin.orders.index') }}">Orders</a>
-                <a href="{{ route('admin.customers.index') }}">Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-                <a href="{{ route('products.show', $product['slug']) }}">View Product</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-        <main class="admin-main">
-            <header class="admin-topbar">
-                <x-brand.logo href="{{ route('admin.dashboard') }}" loading="eager" />
-                <span>Edit Product</span>
-            </header>
+    <x-admin.shell eyebrow="Catalog" title="Edit Product" :badge="$product['name']" subtitle="Update product details, pricing, stock and images.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.products.index')" tone="ghost" icon="fa-solid fa-arrow-left">Products</x-admin.action>
+            <x-admin.action :href="route('products.show', $product['slug'])" tone="secondary" icon="fa-regular fa-eye" target="_blank" rel="noopener noreferrer">View Product</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
                 @php
                     $firstVariant = $product['variants'][0] ?? ['colour' => 'Standard', 'size' => 'Standard', 'stock' => 0];
@@ -71,11 +56,7 @@
                     <input type="hidden" name="colour_hex" value="{{ $product['colours'][$firstVariantColour]['hex'] ?? '' }}">
                     <input type="hidden" name="size" value="{{ $firstVariantSize === 'Standard' ? '' : $firstVariantSize }}">
                     <input type="hidden" name="stock" value="{{ $firstVariant['stock'] ?? 0 }}">
-                    <label class="admin-upload-button">
-                        <span><i class="fa-solid fa-images" aria-hidden="true"></i> Add Product Images</span>
-                        <input name="images[]" type="file" multiple accept="image/jpeg,image/png,image/webp">
-                        <small>Only JPG, PNG or WEBP. Max 4 MB each.</small>
-                    </label>
+                    <x-ui.file-upload class="admin-field-wide" name="images[]" label="Add product images" hint="Only JPG, PNG or WebP. Max 4 MB each." accept="image/jpeg,image/png,image/webp" multiple />
                     <div class="admin-image-grid">
                         @foreach ($product['images'] as $image)
                             <figure>
@@ -134,6 +115,5 @@
                     @endif
                 @endforeach
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

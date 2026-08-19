@@ -43,7 +43,7 @@ class OperationsController extends Controller
     public function orders(): View
     {
         $orders = Order::query()
-            ->with('items')
+            ->with(['items', 'latestShippingLabel'])
             ->whereIn('status', ['placed', 'packing', 'shipped', 'delivered'])
             ->latest()
             ->paginate(20);
@@ -81,7 +81,7 @@ class OperationsController extends Controller
         abort_if($order->status === 'payment_pending', 404);
 
         return view('admin.operations.order-show', [
-            'order' => $order->load('items'),
+            'order' => $order->load(['items', 'latestShippingLabel']),
             'shippingProviders' => $this->shippingProviders(),
         ]);
     }

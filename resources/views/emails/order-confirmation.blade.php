@@ -11,7 +11,7 @@
                 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#fffdf8;border:1px solid #e8e1d6;">
                     <tr>
                         <td style="padding:28px 32px 18px;">
-                            <img src="{{ asset('images/brand/sushako-shopping-logo.png') }}" alt="Sushako Shopping Logo" width="220" style="height:auto;max-width:220px;border:0;display:block;">
+                            <img src="{{ asset('assets/brand/sushako-shopping-official-email.png') }}" alt="Sushako Shopping" width="220" style="height:auto;max-width:220px;border:0;display:block;">
                         </td>
                     </tr>
                     <tr>

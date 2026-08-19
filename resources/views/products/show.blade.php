@@ -56,6 +56,11 @@
                 <p class="lede">{{ $product['short_description'] }}</p>
                 <div class="product-meta-row">
                     <span>{{ $product['badge'] }}</span>
+                    @if ($product['seller_official'])
+                        <span><i class="fa-solid fa-certificate" aria-hidden="true"></i> Official Store</span>
+                    @elseif ($product['seller_verified'])
+                        <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Verified Seller</span>
+                    @endif
                     <span>{{ $product['rating'] }} stars</span>
                     <span>{{ $product['reviews'] }} reviews</span>
                     <span>{{ $product['stock_label'] }}</span>
@@ -115,27 +120,47 @@
 
                 <label for="quantity">Quantity</label>
                 <div class="quantity-row">
-                    <input id="quantity" type="number" name="quantity" min="1" max="10" value="1">
+                    <input id="quantity" type="number" name="quantity" min="1" max="10" value="1" @disabled(! $product['available'])>
                 </div>
 
+                @unless ($product['available'])
+                    <div class="status-banner status-banner--warning">
+                        @if ($product['coming_soon'] ?? false)
+                            Coming Soon. Launches {{ $product['go_live_label'] }}. Purchasing opens automatically at launch time.
+                        @else
+                            Out of Stock. You can still wishlist or share this product, and purchasing will reopen when the seller updates inventory.
+                        @endif
+                    </div>
+                @endunless
+
                 <div class="buy-actions">
-                    <button
-                        class="button button--primary add-to-cart-button"
-                        type="button"
-                        data-add-to-cart
-                        data-slug="{{ $product['slug'] }}"
-                        data-colour="{{ $defaultColour }}"
-                        data-size="{{ $defaultSize }}"
-                        data-quantity-target="#quantity"
-                    >Add to Cart</button>
-                    <form class="buy-now-form" method="POST" action="{{ route('cart.buy-now') }}">
-                        @csrf
-                        <input type="hidden" name="slug" value="{{ $product['slug'] }}">
-                        <input type="hidden" name="colour" value="{{ $defaultColour }}" data-buy-now-colour>
-                        <input type="hidden" name="size" value="{{ $defaultSize }}" data-buy-now-size>
-                        <input type="hidden" name="quantity" value="1" data-buy-now-quantity>
-                        <button class="button button--secondary" type="submit">Buy Now</button>
-                    </form>
+                    @if ($product['available'])
+                        <button
+                            class="button button--primary add-to-cart-button"
+                            type="button"
+                            data-add-to-cart
+                            data-slug="{{ $product['slug'] }}"
+                            data-colour="{{ $defaultColour }}"
+                            data-size="{{ $defaultSize }}"
+                            data-quantity-target="#quantity"
+                        >
+                            <svg class="product-action-icon product-action-icon--bag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M7.5 8.25V7a4.5 4.5 0 0 1 9 0v1.25" />
+                                <path d="M5.2 8.25h13.6l.85 11.15a2 2 0 0 1-2 2.1H6.35a2 2 0 0 1-2-2.1L5.2 8.25Z" />
+                            </svg>
+                            <span data-add-to-cart-label>Add to Bag</span>
+                        </button>
+                        <form class="buy-now-form" method="POST" action="{{ route('cart.buy-now') }}">
+                            @csrf
+                            <input type="hidden" name="slug" value="{{ $product['slug'] }}">
+                            <input type="hidden" name="colour" value="{{ $defaultColour }}" data-buy-now-colour>
+                            <input type="hidden" name="size" value="{{ $defaultSize }}" data-buy-now-size>
+                            <input type="hidden" name="quantity" value="1" data-buy-now-quantity>
+                            <button class="button button--secondary" type="submit" data-buy-now-submit><span data-buy-now-label>Buy Now</span></button>
+                        </form>
+                    @else
+                        <button class="button button--primary" type="button" disabled>Out of Stock</button>
+                    @endif
                     <button class="button button--ghost" type="button" data-wishlist data-slug="{{ $product['slug'] }}">Wishlist</button>
                     <button class="button button--ghost" type="button" data-share-url="{{ route('products.show', $product['slug']) }}" data-share-title="{{ $product['name'] }}">Share</button>
                     <a class="button button--secondary" href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode("Hello Sushako Shopping,\n\nI would like to enquire about:\n".$product['name']."\n".route('products.show', $product['slug'])."\nSelected Option: ".($product['has_colour_options'] ? $defaultColour : 'Standard').(($product['has_size_options'] || $product['has_custom_options']) ? ' / '.$defaultSize : '')."\nPrice: INR ".$defaultPrice) }}" target="_blank" rel="noopener noreferrer">WhatsApp Enquiry</a>
@@ -156,7 +181,7 @@
                     </span>
                     <span class="trust-badge">
                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                        24 hour returns
+                        {{ $product['seller_return_policy'] }}
                     </span>
                 </div>
             </div>
@@ -197,7 +222,7 @@
             </div>
             <div>
                 <h2>Return Summary</h2>
-                <p>Returns are accepted within 24 hours from delivery timestamp. Please record an unboxing video for quickest verification. Approved returns are credited to Sushako Wallet.</p>
+                <p>{{ $product['seller_return_policy'] }}. Sushako protection still applies for wrong, damaged, missing, counterfeit, fraudulent, or undelivered orders.</p>
                 <a class="product-card__link" href="{{ route('policies.return-refund') }}">View Full Return Policy</a>
             </div>
         </section>
@@ -209,7 +234,7 @@
             </div>
             <div class="product-grid">
                 @foreach ($relatedProducts as $related)
-                    <x-product.card :product="$related" />
+                    <x-product.card :product="$related" compact />
                 @endforeach
             </div>
         </section>

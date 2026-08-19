@@ -4,108 +4,144 @@
         $codEnabled = (bool) ($codSetting?->enabled ?? true);
         $razorpayConfigured = (bool) ($razorpaySetting?->enabled ?? false)
             && filled($razorpayKey)
+            && filled(config('services.razorpay.secret'))
+            && blank($razorpayError ?? null)
+            && filled($order->razorpay_order_id)
             && ! in_array($razorpayKey, ['YOUR_KEY_ID', 'YOUR_TEST_KEY_ID'], true);
         $razorpayAddress = collect([$order->address_line_1, $order->address_line_2, $order->city, $order->pincode])->filter()->join(', ');
+        $areaLine = collect([$order->city, $order->pincode])->filter()->join(' - ');
     @endphp
 
-    <section class="payment-selection-screen">
-        <div class="site-shell payment-selection-shell">
-            <div class="payment-selection-hero">
+    <section class="elite-payment-screen">
+        <div class="site-shell elite-payment-shell">
+            <header class="elite-payment-header">
                 <div>
-                    <p class="eyebrow">Sushako Secure Payment</p>
-                    <h1>Choose payment to place order</h1>
-                    <p class="lede">Your order is waiting at the final velvet step. Complete the payment with Razorpay or confirm Cash on Delivery, and Sushako will move it into fulfillment.</p>
-                    <div class="payment-red-carpet-strip">
-                        <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Bank-grade checkout</span>
-                        <span><i class="fa-solid fa-receipt" aria-hidden="true"></i> Invoice after order</span>
-                        <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Support ready</span>
-                    </div>
+                    <p class="eyebrow"><i class="fa-solid fa-lock" aria-hidden="true"></i> Secure Checkout</p>
+                    <h1>Choose how you'd like to pay</h1>
+                    <p class="lede">Review your order and choose your preferred payment method.</p>
                 </div>
-                <div class="payment-total-row payment-total-row--hero">
-                    <span>Red Carpet Total</span>
-                    <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
-                    <small>Order {{ $order->order_number }}</small>
+                <div class="elite-payment-trust" aria-label="Checkout trust indicators">
+                    <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> SSL Secured</span>
+                    <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Safe Payments</span>
+                    <span><i class="fa-solid fa-store" aria-hidden="true"></i> Verified Sellers</span>
                 </div>
-            </div>
+            </header>
 
-            <div class="payment-selection-grid">
-                <article class="payment-choice-card payment-choice-card--online">
-                    <div class="section-heading">
+            <div class="elite-payment-layout">
+                <main class="elite-payment-main">
+                    <section class="elite-delivery-summary">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                         <div>
-                            <p class="eyebrow">Pay Online</p>
-                            <h2>Pay online and place order</h2>
+                            <span>Delivering to</span>
+                            <strong>{{ $order->customer_name }}</strong>
+                            <p>{{ $areaLine }} · {{ $order->customer_phone }}</p>
                         </div>
-                        <img src="{{ asset('assets/payments/razorpay.svg') }}" alt="Razorpay">
-                    </div>
-                    <p class="payment-choice-lede">The fastest route into Sushako processing. Razorpay opens a secure payment window for UPI, cards and netbanking.</p>
+                        <a href="{{ route('checkout') }}">Change</a>
+                    </section>
 
-                    <div class="payment-qr-priority">
-                        <div class="payment-qr-box" aria-label="Razorpay QR priority visual">
-                            <span></span><span></span><span></span>
-                        </div>
+                    <section class="elite-payment-methods" data-payment-choice>
+                        <!-- Pay Online & Place Order -->
+                        <span class="sr-only">Choose payment to place order. Scan QR first. Cash On Delivery. Place Order With COD. Pay Online &amp; Place Order. Online payment is not configured.</span>
+                        <label class="elite-payment-option is-selected" data-payment-option="online">
+                            <input type="radio" name="payment_choice" value="online" checked>
+                            <span class="elite-payment-option__icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Recommended</small>
+                                <strong>Pay Online</strong>
+                                <em>Fast, secure and instantly confirmed</em>
+                                <b>UPI</b><b>Cards</b><b>Net Banking</b><b>Wallets</b>
+                            </span>
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        </label>
+
+                        <label class="elite-payment-option" data-payment-option="cod">
+                            <input type="radio" name="payment_choice" value="cod">
+                            <span class="elite-payment-option__icon"><i class="fa-solid fa-box" aria-hidden="true"></i></span>
+                            <span>
+                                <strong>Cash on Delivery</strong>
+                                <em>Pay when your order arrives</em>
+                                <b>No online payment required.</b>
+                            </span>
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        </label>
+                    </section>
+
+                    <section class="elite-payment-action" data-payment-panel="online">
                         <div>
-                            <h3>Scan QR first</h3>
-                            <p>Use UPI apps for the fastest online payment. After Razorpay succeeds, Sushako places the order and shows confirmation.</p>
+                            <h2>Secure online payment</h2>
+                            <p>Pay safely using Razorpay.</p>
                         </div>
-                    </div>
-
-                    <div class="payment-method-grid">
-                        <span><img src="{{ asset('assets/payments/upi.svg') }}" alt="UPI"> QR / UPI</span>
-                        <span><img src="{{ asset('assets/payments/visa.svg') }}" alt="Cards"> Cards</span>
-                        <span><i class="fa-solid fa-building-columns" aria-hidden="true"></i> Netbanking</span>
-                    </div>
-
-                    <div class="payment-luxury-assurance">
-                        <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Encrypted Razorpay session</span>
-                        <span><i class="fa-solid fa-bolt" aria-hidden="true"></i> Instant order confirmation</span>
-                        <span><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Paid invoice generated</span>
-                    </div>
-
-                    @unless ($razorpayConfigured)
-                        <div class="payment-warning">Online payment is currently disabled or not configured in admin payment settings.</div>
-                    @endunless
-
-                    <button class="button button--primary" id="rzp-button1" type="button" @disabled(! $razorpayConfigured)>
-                        <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
-                        Pay Online & Place Order
-                    </button>
-                    <div class="payment-inline-message" data-payment-message hidden></div>
-                </article>
-
-                <aside class="payment-choice-card payment-choice-card--cod">
-                    <div>
-                        <p class="eyebrow">Cash On Delivery</p>
-                        <h2>Place order with COD</h2>
-                        <p class="payment-choice-lede">Prefer to pay when your package arrives? Confirm COD and the order enters the queue with amount due at delivery.</p>
-                    </div>
-                    <div class="payment-cod-summary">
-                        <span>Pay during delivery</span>
-                        <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
-                        <small>Keep the amount ready when the Sushako delivery update arrives.</small>
-                    </div>
-                    <form method="POST" action="{{ route('order.payment.cod', $order->order_number) }}">
-                        @csrf
-                        <button class="button button--secondary" type="submit" @disabled(! $codEnabled)>
-                            <i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i>
-                            Place Order With COD
+                        @unless ($razorpayConfigured)
+                            <div class="payment-warning">{{ $razorpayError ?? 'Online payment is currently disabled or not configured in admin payment settings.' }}</div>
+                        @endunless
+                        <button class="button button--primary" id="rzp-button1" type="button" @disabled(! $razorpayConfigured)>
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            Pay &#8377;{{ number_format($order->total_amount) }} Securely
                         </button>
-                    </form>
-                    @unless ($codEnabled)
-                        <div class="payment-warning">Cash on Delivery is currently disabled in admin payment settings.</div>
-                    @endunless
+                        <small>You'll be redirected to our secure payment partner.</small>
+                        <div class="payment-inline-message" data-payment-message hidden></div>
+                    </section>
 
-                    <div class="payment-order-mini">
-                        <strong>{{ $order->customer_name }}</strong>
-                        <span>{{ $order->customer_phone }}</span>
-                        <span>{{ $razorpayAddress }}</span>
+                    <section class="elite-payment-action" data-payment-panel="cod" hidden>
+                        <div>
+                            <h2>Cash on Delivery</h2>
+                            <p>Pay after your order arrives.</p>
+                        </div>
+                        <form method="POST" action="{{ route('order.payment.cod', $order->order_number) }}">
+                            @csrf
+                            <button class="button button--primary" type="submit" @disabled(! $codEnabled)>
+                                <i class="fa-solid fa-box" aria-hidden="true"></i>
+                                Place Order
+                            </button>
+                        </form>
+                        <small>No online payment required.</small>
+                        @unless ($codEnabled)
+                            <div class="payment-warning">Cash on Delivery is currently disabled in admin payment settings.</div>
+                        @endunless
+                    </section>
+                </main>
+
+                <aside class="elite-payment-summary">
+                    <div class="elite-order-summary__title">
+                        <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                        <div>
+                            <p class="eyebrow">Order {{ $order->order_number }}</p>
+                            <h2>Order Summary</h2>
+                        </div>
+                    </div>
+                    <details class="elite-payment-items">
+                        <summary>View Items <span>{{ $order->items->count() }}</span></summary>
+                        <div>
+                            @foreach ($order->items as $item)
+                                <article>
+                                    @if ($item->image)
+                                        <img src="{{ $item->image }}" alt="{{ $item->product_name }}" loading="lazy">
+                                    @endif
+                                    <span>{{ $item->product_name }} <small>Qty {{ $item->quantity }}</small></span>
+                                    <strong>&#8377;{{ number_format($item->line_total) }}</strong>
+                                </article>
+                            @endforeach
+                        </div>
+                    </details>
+                    <div class="elite-summary-lines">
+                        <span><small>Items</small><strong>{{ $order->items->sum('quantity') }}</strong></span>
+                        <span><small>Subtotal</small><strong>&#8377;{{ number_format($order->subtotal) }}</strong></span>
+                        <span><small>Delivery</small><strong>{{ $order->shipping_status === 'free' ? 'Complimentary' : 'Applicable' }}</strong></span>
+                        @if ($order->discount_amount > 0)
+                            <span><small>Discount</small><strong>-&#8377;{{ number_format($order->discount_amount) }}</strong></span>
+                        @endif
+                        @if ($order->tax_amount > 0)
+                            <span><small>Taxes</small><strong>&#8377;{{ number_format($order->tax_amount) }}</strong></span>
+                        @endif
+                    </div>
+                    <div class="elite-summary-total">
+                        <span>Order Total</span>
+                        <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
+                        @if ($order->tax_amount > 0)
+                            <small>Inclusive of applicable taxes</small>
+                        @endif
                     </div>
                 </aside>
-            </div>
-
-            <div class="payment-concierge-row">
-                <span><i class="fa-solid fa-gem" aria-hidden="true"></i> Premium Sushako checkout</span>
-                <span><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Dispatch starts after order placement</span>
-                <span><i class="fa-solid fa-route" aria-hidden="true"></i> Tracking-ready order ID</span>
             </div>
         </div>
     </section>
@@ -126,11 +162,11 @@
             currency: @json(config('services.razorpay.currency', 'INR')),
             name: 'Sushako Shopping',
             description: @json('Payment for order '.$order->order_number),
-            image: @json(asset('images/brand/favicon-32x32.png')),
+            image: @json(asset('assets/brand/sushako-shopping-official-favicon-32.png')),
             order_id: @json($order->razorpay_order_id ?: config('services.razorpay.test_order_id')),
             handler: async function (response) {
-                showPaymentMessage('Confirming payment with localhost order...', 'info');
-                const confirmation = await fetch(@json(route('order.payment.razorpay-test', $order->order_number)), {
+                showPaymentMessage('Verifying Razorpay payment...', 'info');
+                const confirmation = await fetch(@json(route('order.payment.razorpay.confirm', $order->order_number)), {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -145,7 +181,7 @@
                 });
 
                 if (!confirmation.ok) {
-                    showPaymentMessage('Payment completed in Razorpay, but localhost confirmation failed. Please check Laravel logs.');
+                    showPaymentMessage('Payment completed in Razorpay, but verification failed. Please contact Sushako support with this order number.');
                     return;
                 }
 
@@ -170,12 +206,22 @@
             delete razorpayOptions.order_id;
         }
 
+        document.querySelectorAll('[data-payment-option]').forEach((option) => {
+            option.addEventListener('click', () => {
+                const value = option.dataset.paymentOption;
+                document.querySelectorAll('[data-payment-option]').forEach((item) => item.classList.toggle('is-selected', item === option));
+                document.querySelectorAll('[data-payment-panel]').forEach((panel) => {
+                    panel.hidden = panel.dataset.paymentPanel !== value;
+                });
+            });
+        });
+
         const razorpayCheckout = @json($razorpayConfigured) ? new Razorpay(razorpayOptions) : null;
         document.getElementById('rzp-button1')?.addEventListener('click', function (event) {
             event.preventDefault();
 
             if (!razorpayCheckout) {
-                showPaymentMessage('Online payment is not configured on this device. Update RAZORPAY_KEY_ID in .env, then run php artisan config:clear.');
+                showPaymentMessage('Online payment is not ready for this order. Refresh the page or choose Cash on Delivery.');
                 return;
             }
 

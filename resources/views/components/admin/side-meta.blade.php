@@ -1,8 +1,9 @@
 <div class="admin-side-meta">
-    <span>{{ now()->format('D, d M Y') }}</span>
-    <strong>{{ now()->format('h:i A') }}</strong>
+    <span>{{ auth()->user()?->name ?? 'Sushako Admin' }}</span>
+    <strong>{{ str(auth()->user()?->role ?? 'admin')->replace('_', ' ')->title() }}</strong>
+    <small>{{ now()->format('D, d M Y · h:i A') }}</small>
     <form method="POST" action="{{ route('admin.logout') }}">
         @csrf
-        <button type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout</button>
+        <button type="submit"><x-admin.nav-icon name="logout" /> Logout</button>
     </form>
 </div>

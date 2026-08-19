@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\OfficialStoreService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -35,8 +36,37 @@ class OwnStoreAdminTest extends TestCase
         $this->assertAuthenticatedAs($superAdmin);
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Your Sushako Store Dashboard')
+            ->assertSee('Dashboard')
+            ->assertDontSee('Operations Center')
+            ->assertSee('Approval Center')
             ->assertSee('Logout');
+    }
+
+    public function test_admin_entry_point_handles_guests_and_existing_customer_sessions(): void
+    {
+        $superAdmin = User::factory()->create([
+            'email' => 'superadmin@example.test',
+            'password' => Hash::make('Password123!'),
+            'role' => User::ROLE_SUPER_ADMIN,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+        $customer = User::factory()->create(['role' => User::ROLE_CUSTOMER]);
+
+        $this->get(route('admin'))->assertRedirect(route('admin.login'));
+        $this->get(route('admin.login'))->assertOk()->assertSee('Super Admin Login');
+
+        $this->actingAs($customer)
+            ->get(route('admin.login'))
+            ->assertOk()
+            ->assertSee('Super Admin Login');
+
+        $this->post(route('admin.login.store'), [
+            'email' => $superAdmin->email,
+            'password' => 'Password123!',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($superAdmin);
+        $this->get(route('admin'))->assertRedirect(route('admin.dashboard'));
     }
 
     public function test_non_super_admin_cannot_use_admin_login_or_admin_routes(): void
@@ -57,10 +87,10 @@ class OwnStoreAdminTest extends TestCase
         $this->actingAs($customer)->get(route('admin.dashboard'))->assertForbidden();
     }
 
-    public function test_seller_routes_are_removed(): void
+    public function test_seller_routes_are_available_but_seller_dashboard_is_protected(): void
     {
-        $this->get('/seller/login')->assertNotFound();
-        $this->get('/seller/dashboard')->assertNotFound();
+        $this->get('/seller/login')->assertOk()->assertSee('Continue with Google');
+        $this->get('/seller/dashboard')->assertRedirect(route('seller.login'));
         $this->get('/sell')->assertNotFound();
     }
 
@@ -70,6 +100,7 @@ class OwnStoreAdminTest extends TestCase
 
         $urls = [
             route('admin.categories.index'),
+            route('admin.approvals.index'),
             route('admin.categories.create'),
             route('admin.products.index'),
             route('admin.products.create'),
@@ -115,6 +146,7 @@ class OwnStoreAdminTest extends TestCase
 
         $product = Product::query()->where('slug', 'launch-ready-product')->firstOrFail();
 
+        $this->assertSame(OfficialStoreService::SLUG, $product->vendor()->firstOrFail()->slug);
         $this->assertSame(12, $product->variants()->firstOrFail()->stock);
         Storage::disk('public')->assertExists($product->images()->firstOrFail()->path);
 

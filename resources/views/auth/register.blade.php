@@ -8,6 +8,8 @@
             @if ($errors->any())
                 <div class="status-banner">{{ $errors->first() }}</div>
             @endif
+            <x-google-auth-button :href="route('login.google')" />
+            <div class="auth-divider"><span>or create with email</span></div>
             <label for="name">Name</label>
             <input id="name" name="name" value="{{ old('name') }}" required autocomplete="name">
             <label for="email">Email</label>

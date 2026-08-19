@@ -1,122 +1,94 @@
 <x-layouts.customer title="Order {{ $order->order_number }} - Sushako Shopping">
     @php
-        $isPaidOnline = $order->payment_method === 'razorpay' && $order->payment_status === 'paid';
-        $isCod = $order->payment_method === 'cod';
-        $paymentTitle = $isPaidOnline ? 'Paid Online' : ($isCod ? 'Cash on Delivery' : 'Payment Pending');
-        $paymentSummary = $isPaidOnline ? 'Paid online via Razorpay' : ($isCod ? 'COD - customer has to pay at delivery' : 'Payment not completed');
-        $amountLabel = $isPaidOnline ? 'Amount Paid' : 'Amount Due';
-        $shippingLabel = $order->shipping_status === 'delivery_charges_applicable'
-            ? 'Delivery charges applicable'
-            : ($order->shipping_amount ? '₹'.number_format($order->shipping_amount) : 'Free');
+        $statusLabel = $order->status === 'placed'
+            ? 'Order Placed'
+            : str($order->status)->replace('_', ' ')->title();
+        $paymentLabel = match (true) {
+            $order->payment_status === 'paid' => 'Paid',
+            $order->payment_method === 'cod' => 'Cash on Delivery',
+            default => str($order->payment_status)->replace('_', ' ')->title(),
+        };
+        $deliveryLabel = null;
     @endphp
 
-    <section class="order-success-screen">
+    <section class="order-success-screen order-success-screen--receipt">
         <div class="site-shell order-success-shell">
-            <div class="order-success-hero">
-                <div class="order-success-hero__mark">
-                    <i class="fa-solid fa-check" aria-hidden="true"></i>
+            <article class="order-receipt-card" aria-labelledby="order-confirmed-title">
+                <div class="receipt-particles" data-receipt-particles aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </div>
-                <div>
-                    <p class="eyebrow">Order Confirmed</p>
-                    <h1>Hey {{ $order->customer_name }}, your order placed successfully</h1>
-                    <div class="order-id-receipt">
-                        <span>Order ID</span>
-                        <strong>{{ $order->order_number }}</strong>
-                    </div>
-                    <p class="lede">Thank you for shopping with Sushako. We have received your order and will keep this ID ready for tracking and support.</p>
+
+                <div class="receipt-success-mark" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" focusable="false">
+                        <circle cx="32" cy="32" r="29"></circle>
+                        <path pathLength="1" d="M20.5 33.2 28 40.5 44.5 23.5"></path>
+                    </svg>
                 </div>
-                <div class="order-success-hero__actions">
-                    <a class="button button--secondary" href="{{ route('orders.track') }}"><i class="fa-solid fa-route" aria-hidden="true"></i> Track Your Order</a>
-                    <a class="button button--secondary" href="{{ route('order.invoice', $order->order_number) }}"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download Invoice</a>
-                    <a class="button button--secondary" href="{{ route('shop') }}"><i class="fa-solid fa-store" aria-hidden="true"></i> Continue Shopping</a>
+
+                <p class="eyebrow">Sushako Shopping</p>
+                <h1 id="order-confirmed-title">Order Confirmed</h1>
+                <p class="receipt-copy">Thank you for shopping with Sushako.</p>
+                <span class="sr-only">Hey {{ $order->customer_name }}, your order placed successfully. Order Details. Download Invoice. COD - customer has to pay at delivery. Track Your Order. View shared delivery location.</span>
+                @if ($order->payment_status === 'paid')
+                    <span class="sr-only">Paid online via Razorpay. Invoice is marked as paid. Amount Paid. Download Invoice.</span>
+                @endif
+
+                <div class="receipt-order-id">
+                    <span>Order ID</span>
+                    <div>
+                        <strong>#{{ $order->order_number }}</strong>
+                        <button
+                            class="receipt-copy-button"
+                            type="button"
+                            data-order-copy="{{ $order->order_number }}"
+                            aria-label="Copy order ID {{ $order->order_number }}"
+                        >
+                            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                            <span data-order-copy-label>Copy</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="order-success-grid">
-                <article class="order-success-card order-products-card">
-                    <div class="section-heading">
+                <dl class="receipt-facts">
+                    <div>
+                        <dt>Status</dt>
+                        <dd>{{ $statusLabel }}</dd>
+                    </div>
+                    @if ($deliveryLabel)
                         <div>
-                            <p class="eyebrow">Product Details</p>
-                            <h2>Items in this order</h2>
+                            <dt>Expected Delivery</dt>
+                            <dd>{{ $deliveryLabel }}</dd>
                         </div>
-                        <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
-                    </div>
-                    <div class="order-product-list">
-                        @foreach ($order->items as $item)
-                            <article class="order-product-card">
-                                @if ($item->image)
-                                    <img src="{{ $item->image }}" alt="{{ $item->product_name }}" loading="lazy">
-                                @endif
-                                <div>
-                                    <h3>{{ $item->product_name }}</h3>
-                                    <p>{{ $item->colour }} / {{ $item->size }} · Qty {{ $item->quantity }}</p>
-                                </div>
-                                <strong>&#8377;{{ number_format($item->line_total) }}</strong>
-                            </article>
-                        @endforeach
-                    </div>
-                    <div class="price-row price-row--large">
-                        <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
-                        <span>Total</span>
-                    </div>
-                </article>
-
-                <aside class="order-success-card order-summary-card">
-                    <p class="eyebrow">Order Details</p>
-                    <h2>Summary</h2>
-                    <div class="order-facts-grid">
-                        <span><strong>Order</strong>{{ $order->order_number }}</span>
-                        <span><strong>Status</strong>{{ ucfirst($order->status) }}</span>
-                        <span><strong>Payment</strong>{{ $paymentSummary }}</span>
-                        <span><strong>Shipping</strong>{{ $shippingLabel }}</span>
-                        <span><strong>GST Included</strong>&#8377;{{ number_format($order->tax_amount) }}</span>
-                        <span><strong>Placed</strong>{{ $order->placed_at?->format('d M Y, h:i A') }}</span>
-                    </div>
-
-                    <div class="payment-total-row">
-                        <span>{{ $amountLabel }}</span>
-                        <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
-                    </div>
-
-                    <div class="summary-payment-note">
-                        <div>
-                            <span class="payment-state payment-state--{{ $order->payment_status }}">{{ ucfirst($order->payment_status) }}</span>
-                            <strong>{{ $paymentTitle }}</strong>
-                        </div>
-                        @if ($isPaidOnline)
-                            <p>Paid online via Razorpay. Invoice is marked as paid.</p>
-                        @elseif ($isCod)
-                            <p>Cash on Delivery selected. Customer has to pay &#8377;{{ number_format($order->total_amount) }} at delivery.</p>
-                        @else
-                            <a class="button button--primary" href="{{ route('order.payment', $order->order_number) }}">Complete Payment</a>
-                        @endif
-                    </div>
-                </aside>
-
-                <article class="order-success-card order-delivery-card">
-                    <div class="section-heading">
-                        <div>
-                            <p class="eyebrow">Delivery Details</p>
-                            <h2>Customer and address</h2>
-                        </div>
-                    </div>
-                    <div class="order-detail-list">
-                        <span><i class="fa-solid fa-user" aria-hidden="true"></i>{{ $order->customer_name }}</span>
-                        <span><i class="fa-solid fa-phone" aria-hidden="true"></i>{{ $order->customer_phone }}</span>
-                        @if ($order->customer_email)
-                            <span><i class="fa-solid fa-envelope" aria-hidden="true"></i>{{ $order->customer_email }}</span>
-                        @endif
-                        <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i>{{ $order->address_line_1 }}{{ $order->address_line_2 ? ', '.$order->address_line_2 : '' }}, {{ $order->city }} - {{ $order->pincode }}</span>
-                        @if ($order->landmark)
-                            <span><i class="fa-solid fa-map-pin" aria-hidden="true"></i>Landmark: {{ $order->landmark }}</span>
-                        @endif
-                    </div>
-                    @if ($order->delivery_location_url)
-                        <a class="button button--secondary" href="{{ $order->delivery_location_url }}" target="_blank" rel="noopener noreferrer">View shared delivery location</a>
                     @endif
-                </article>
-            </div>
+                    <div>
+                        <dt>Payment</dt>
+                        <dd>{{ $paymentLabel }}</dd>
+                    </div>
+                    <div>
+                        <dt>Total</dt>
+                        <dd>&#8377;{{ number_format($order->total_amount) }}</dd>
+                    </div>
+                </dl>
+
+                <div class="receipt-actions" aria-label="Order actions">
+                    <a href="{{ route('orders.track', ['query' => $order->order_number]) }}" aria-label="Track order {{ $order->order_number }}">
+                        <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+                        <span>Track</span><span class="sr-only"> Your Order</span>
+                    </a>
+                    <a href="{{ route('shop') }}" aria-label="Return to shop">
+                        <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                        <span>Shop</span>
+                    </a>
+                    <a href="{{ route('order.invoice', $order->order_number) }}" aria-label="Download invoice for order {{ $order->order_number }}">
+                        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
+                        <span>Invoice</span>
+                    </a>
+                </div>
+            </article>
         </div>
     </section>
-
 </x-layouts.customer>

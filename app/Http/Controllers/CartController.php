@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductVariant;
+use App\Services\AbandonedCartService;
 use App\Services\OperationalSettingsService;
 use App\Support\ProductCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -10,9 +11,10 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly OperationalSettingsService $settings)
-    {
-    }
+    public function __construct(
+        private readonly OperationalSettingsService $settings,
+        private readonly AbandonedCartService $abandonedCart,
+    ) {}
 
     private function cartSummary(array $cart): array
     {
@@ -29,11 +31,19 @@ class CartController extends Controller
     public function show()
     {
         $cart = session('cart', []);
+        $cartProductIds = collect($cart)->pluck('product_id')->filter()->all();
+        $recommendations = ProductCatalog::products()
+            ->filter(fn (array $product): bool => $product['available'] && ! in_array($product['id'], $cartProductIds, true))
+            ->sortByDesc(fn (array $product): int => (int) $product['is_best_seller'])
+            ->take(4)
+            ->values();
 
         return view($cart ? 'cart.show' : 'cart.empty', [
             'cart' => $cart,
             'summary' => $this->settings->checkoutSummary($cart),
+            'shippingSettings' => $this->settings->shipping(),
             'product' => ProductCatalog::featuredProduct(),
+            'recommendations' => $recommendations,
         ]);
     }
 
@@ -60,6 +70,13 @@ class CartController extends Controller
 
         $product = ProductCatalog::productArray($productModel);
         abort_unless($product, 404);
+        if (! $product['available']) {
+            return back()->withErrors([
+                'product' => ($product['coming_soon'] ?? false)
+                    ? 'This product is coming soon and cannot be purchased before launch.'
+                    : 'This product is not available for purchase right now.',
+            ]);
+        }
 
         $cart = session('cart', []);
         $cart[$product['slug'].'-'.$data['colour'].'-'.$data['size']] = [
@@ -75,6 +92,7 @@ class CartController extends Controller
         ];
 
         session(['cart' => $cart]);
+        $this->abandonedCart->syncFromSession($request->user(), $request->session()->getId(), $cart);
 
         if ($request->expectsJson()) {
             return response()->json(array_merge([
@@ -111,6 +129,7 @@ class CartController extends Controller
 
         $cart[$key]['quantity'] = $data['quantity'];
         session(['cart' => $cart]);
+        $this->abandonedCart->syncFromSession($request->user(), $request->session()->getId(), $cart);
 
         if ($request->expectsJson()) {
             return response()->json(array_merge([
@@ -128,6 +147,7 @@ class CartController extends Controller
 
         unset($cart[$key]);
         session(['cart' => $cart]);
+        $this->abandonedCart->syncFromSession($request->user(), $request->session()->getId(), $cart);
 
         if ($request->expectsJson()) {
             return response()->json(array_merge([

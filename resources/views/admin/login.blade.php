@@ -2,7 +2,7 @@
     <section class="admin-auth-screen admin-auth-screen--operations">
         <div class="auth-portal auth-portal--admin">
             <aside class="auth-visual auth-visual--admin">
-                <x-brand.logo context="admin" href="{{ route('admin.login') }}" loading="eager" />
+                <x-brand.sushako-shopping-logo href="{{ route('admin.login') }}" variant="full" theme="dark" size="lg" loading="eager" />
                 <div>
                     <p class="eyebrow">Operations Control</p>
                     <h1>Super admin command center for live store movement.</h1>
@@ -18,7 +18,7 @@
 
             <form class="admin-login-panel admin-login-panel--elevated" method="POST" action="{{ route('admin.login.store') }}">
                 @csrf
-                <x-brand.logo context="admin" href="{{ route('admin.login') }}" loading="eager" />
+                <x-brand.sushako-shopping-logo href="{{ route('admin.login') }}" variant="full" theme="light" size="lg" loading="eager" />
                 <p class="eyebrow">Super Admin Login</p>
                 <h1>Manage Sushako Shopping</h1>
                 <p class="auth-panel-copy">Restricted access for store operations, orders and fulfillment control.</p>

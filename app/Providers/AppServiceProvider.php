@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\SellerAccountService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,8 +18,12 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot(SellerAccountService $sellerAccounts): void
     {
-        //
+        if ($this->app->runningUnitTests() || $this->app->runningInConsole()) {
+            return;
+        }
+
+        $sellerAccounts->ensureSeedData();
     }
 }

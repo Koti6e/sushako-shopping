@@ -1,10 +1,5 @@
 <x-layouts.admin title="Company Settings - Admin">
-    <div class="admin-shell">
-        @include('admin.settings.partials.sidebar')
-        <main class="admin-main">
-            <header class="admin-topbar admin-topbar--premium">
-                <div><span>Settings</span><strong>Company profile</strong></div>
-            </header>
+    <x-admin.shell eyebrow="Settings" title="Company profile" subtitle="Central business identity for invoices, emails and policies.">
             <section class="admin-dashboard-panel admin-settings-panel">
                 @include('admin.settings.partials.nav')
                 @if (session('status')) <div class="status-banner">{{ session('status') }}</div> @endif
@@ -17,7 +12,7 @@
                     @method('PUT')
                     <label>Company Name<input name="company_name" value="{{ old('company_name', $settings->company_name) }}" required></label>
                     <label>Legal Business Name<input name="legal_business_name" value="{{ old('legal_business_name', $settings->legal_business_name) }}" required></label>
-                    <label>Logo<input name="logo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+                    <x-ui.file-upload class="admin-field-wide" name="logo" label="Company logo" hint="JPG, PNG or WebP logo for invoices and emails." accept="image/jpeg,image/png,image/webp" />
                     <label>GSTIN<input name="gstin" value="{{ old('gstin', $settings->gstin) }}"></label>
                     <label>PAN <small>Optional</small><input name="pan" value="{{ old('pan', $settings->pan) }}"></label>
                     <label>CIN <small>Optional</small><input name="cin" value="{{ old('cin', $settings->cin) }}"></label>
@@ -36,6 +31,5 @@
                     <button class="button button--primary" type="submit">Save Company Settings</button>
                 </form>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

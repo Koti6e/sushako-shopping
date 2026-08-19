@@ -188,9 +188,12 @@
                             <article class="mini-cart-line">
                                 <div>
                                     <h3>{{ $order->order_number }}</h3>
-                                    <p>{{ ucfirst($order->status) }} · {{ ucfirst($order->payment_status) }} · {{ $order->placed_at?->format('d M Y') }}</p>
+                                    <p>{{ str($order->status)->replace('_', ' ')->title() }} · {{ ucfirst($order->payment_status) }} · {{ $order->placed_at?->format('d M Y') ?? $order->created_at->format('d M Y') }}</p>
                                     <strong>&#8377;{{ number_format($order->total_amount) }}</strong>
                                 </div>
+                                @if ($order->status === 'payment_pending')
+                                    <a class="button button--primary" href="{{ route('order.payment', $order->order_number) }}">Complete Payment</a>
+                                @endif
                             </article>
                         @empty
                             <p>Orders placed from your Sushako account will appear here.</p>

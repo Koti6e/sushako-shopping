@@ -1,20 +1,8 @@
 <x-layouts.admin title="Add Category - Admin">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav aria-label="Admin navigation">
-                <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-                <a href="{{ route('admin.categories.index') }}">Categories</a>
-                <a href="{{ route('admin.products.index') }}">Products</a>
-                <a href="{{ route('admin.inventory.index') }}">Inventory</a>
-                <a href="{{ route('admin.orders.index') }}">Orders</a>
-                <a href="{{ route('admin.customers.index') }}">Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-        <main class="admin-main">
-            <header class="admin-topbar"><x-brand.logo href="{{ route('admin.dashboard') }}" loading="eager" /><span>Add Category</span></header>
+    <x-admin.shell eyebrow="Catalog" title="Add Category" subtitle="Create a storefront category for products, filters and menu navigation.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.categories.index')" tone="secondary" icon="fa-solid fa-layer-group">Categories</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
                 @if ($errors->any())
                     <div class="status-banner status-banner--error">{{ $errors->first() }}</div>
@@ -38,14 +26,11 @@
                     <label>Headline<input name="headline" value="{{ old('headline') }}" placeholder="Category headline"></label>
                     <label>Description<textarea name="description" placeholder="Short category description" required>{{ old('description') }}</textarea></label>
                     <label>Accent Colour<input name="accent" value="{{ old('accent', '#2f6b4f') }}"></label>
-                    <label class="admin-upload-button">
-                        <span><i class="fa-solid fa-image" aria-hidden="true"></i> Upload Category Banner</span>
-                        <input name="image" type="file" accept="image/jpeg,image/png,image/webp">
-                        <small>Only JPG, PNG or WEBP. Max 4 MB.</small>
-                    </label>
-                    <button class="button button--primary" type="submit">Save Category</button>
+                    <x-ui.file-upload class="admin-field-wide" name="image" label="Upload category banner" hint="JPG, PNG or WebP category image." accept="image/jpeg,image/png,image/webp" />
+                    <div class="admin-form-actions admin-field-wide">
+                        <button class="button button--primary" type="submit">Save Category</button>
+                    </div>
                 </form>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

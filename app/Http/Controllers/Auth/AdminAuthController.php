@@ -12,8 +12,21 @@ use Illuminate\View\View;
 
 class AdminAuthController extends Controller
 {
-    public function showLogin(): View
+    public function entry(): RedirectResponse
     {
+        if (Auth::user()?->hasRole(User::ROLE_SUPER_ADMIN)) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return redirect()->route('admin.login');
+    }
+
+    public function showLogin(): View|RedirectResponse
+    {
+        if (Auth::user()?->hasRole(User::ROLE_SUPER_ADMIN)) {
+            return redirect()->route('admin.dashboard');
+        }
+
         return view('admin.login');
     }
 

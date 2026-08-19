@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520" viewBox="0 0 720 520" role="img" aria-labelledby="title desc">
+  <title id="title">Seller commerce suite</title>
+  <desc id="desc">A storefront, analytics dashboard, growth chart, and connected commerce lines.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#263d5e"/>
+      <stop offset="1" stop-color="#0b1729"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" x2="1">
+      <stop offset="0" stop-color="#2cc7ff"/>
+      <stop offset="1" stop-color="#1687e8"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" x2="1">
+      <stop offset="0" stop-color="#ffb15f"/>
+      <stop offset="1" stop-color="#ff6f3d"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" values="0 0 0 0 0.1 0 0 0 0 0.65 0 0 0 0 1 0 0 0 .45 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#020817" flood-opacity=".42"/>
+    </filter>
+  </defs>
+  <rect width="720" height="520" fill="none"/>
+  <g opacity=".55" stroke="#39c9ff" stroke-width="2" fill="none">
+    <path d="M42 385h96l40-45h86"/>
+    <path d="M52 430h142l46-52h74"/>
+    <path d="M372 50v78h76l35 38h103"/>
+    <path d="M528 332h88l36-38h40"/>
+    <path d="M120 118h72l28 28h74"/>
+    <circle cx="42" cy="385" r="5" fill="#39c9ff"/>
+    <circle cx="52" cy="430" r="5" fill="#39c9ff"/>
+    <circle cx="372" cy="50" r="5" fill="#39c9ff"/>
+    <circle cx="692" cy="294" r="5" fill="#39c9ff"/>
+  </g>
+  <g opacity=".45" stroke="#ff8b4a" stroke-width="3" fill="none">
+    <path d="M74 320h118l44-34h90"/>
+    <path d="M402 430h85l34-34h95"/>
+    <circle cx="74" cy="320" r="5" fill="#ff8b4a"/>
+    <circle cx="616" cy="396" r="5" fill="#ff8b4a"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M395 119 611 244 388 372 174 248Z" fill="#0d182a" opacity=".86"/>
+    <path d="M395 142 568 243 388 347 216 248Z" fill="#142842"/>
+    <path d="M395 142 568 243 388 347 216 248Z" fill="none" stroke="#39c9ff" stroke-opacity=".32"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M438 54 636 166v150L438 204Z" fill="url(#panel)"/>
+    <path d="M455 79 618 171v94l-163-92Z" fill="#eef7ff"/>
+    <path d="M455 188 618 280" stroke="#466583" stroke-width="2"/>
+    <circle cx="474" cy="91" r="5" fill="#ffcf62"/>
+    <circle cx="490" cy="100" r="5" fill="#ff7d55"/>
+    <circle cx="506" cy="109" r="5" fill="#34d4ff"/>
+    <path d="M484 155a28 28 0 1 0 28-28v28Z" fill="#1aa0f2"/>
+    <path d="M512 127a28 28 0 0 1 23 44l-23-16Z" fill="#ff8b4a"/>
+    <path d="M512 155v-28a28 28 0 0 1 22 11Z" fill="#22c55e"/>
+    <path d="M555 155h42M555 175h32M555 195h48" stroke="#19324f" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M242 132h160v124l-160 72Z" fill="#142842"/>
+    <path d="M262 153h118v84l-118 53Z" fill="#102038" stroke="#39c9ff" stroke-opacity=".28"/>
+    <path d="M279 236v-38h21v29Zm36-16v-55h21v46Zm36-25v-83h21v73Z" fill="url(#blue)"/>
+    <path d="m273 208 35-43 31 18 38-65" fill="none" stroke="#ff8b4a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="m376 118 2 34 26-21Z" fill="#ff8b4a"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M312 279h166v96l-166 76-166-76v-96Z" fill="#f7fbff"/>
+    <path d="m146 279 166 76 166-76-166-74Z" fill="#dcefff"/>
+    <path d="m181 293 131 60 131-60-131-58Z" fill="#fff"/>
+    <path d="M214 326h196v91H214Z" fill="#fff8ed"/>
+    <path d="M214 326h196v25H214Z" fill="url(#orange)"/>
+    <path d="M235 326v25M257 326v25M279 326v25M301 326v25M323 326v25M345 326v25M367 326v25M389 326v25" stroke="#fff" stroke-width="4"/>
+    <path d="M241 361h142v56H241Z" fill="#172a45"/>
+    <path d="M262 382h36M262 399h68" stroke="#39c9ff" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#glow)">
+    <circle cx="155" cy="76" r="4" fill="#39c9ff"/>
+    <circle cx="630" cy="84" r="4" fill="#39c9ff"/>
+    <circle cx="604" cy="430" r="4" fill="#ff8b4a"/>
+    <circle cx="248" cy="454" r="4" fill="#39c9ff"/>
+  </g>
+</svg>

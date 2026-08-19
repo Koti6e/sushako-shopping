@@ -18,14 +18,14 @@ use Illuminate\View\View;
 
 class CustomerAuthController extends Controller
 {
-    public function showLogin(): View
+    public function showLogin(): RedirectResponse
     {
-        return view('auth.login');
+        return redirect()->route('orders.track')->with('status', 'Customer login is no longer required. Track your order with your Order ID and mobile number.');
     }
 
-    public function showRegister(): View
+    public function showRegister(): RedirectResponse
     {
-        return view('auth.register');
+        return redirect()->route('shop')->with('status', 'You can shop and checkout as a guest without creating an account.');
     }
 
     public function register(Request $request): RedirectResponse
@@ -49,6 +49,7 @@ class CustomerAuthController extends Controller
         ]);
 
         Auth::login($user);
+        $user->forceFill(['last_activity_at' => now()])->save();
         $request->session()->regenerate();
 
         return redirect()->intended(route('account.show'));
@@ -75,7 +76,7 @@ class CustomerAuthController extends Controller
 
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
-        $user->forceFill(['last_login_at' => now()])->save();
+        $user->forceFill(['last_login_at' => now(), 'last_activity_at' => now()])->save();
 
         return redirect()->intended(route('account.show'));
     }
@@ -114,7 +115,7 @@ class CustomerAuthController extends Controller
             'orders' => Order::query()
                 ->with('items')
                 ->where('user_id', $user->id)
-                ->whereIn('status', ['placed', 'packing', 'shipped', 'delivered'])
+                ->whereIn('status', ['payment_pending', 'placed', 'packing', 'shipped', 'delivered'])
                 ->latest()
                 ->get(),
         ]);

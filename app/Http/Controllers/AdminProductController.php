@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\TaxSlab;
+use App\Services\OfficialStoreService;
 use App\Support\ProductCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,10 +32,13 @@ class AdminProductController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, OfficialStoreService $officialStore): RedirectResponse
     {
         $data = $this->validatedProduct($request);
-        $product = Product::query()->create($this->productPayload($data));
+        $product = Product::query()->create($this->productPayload($data) + [
+            'vendor_id' => $officialStore->ensure($request->user())->id,
+            'seller_status' => Product::SELLER_STATUS_APPROVED,
+        ]);
 
         $this->syncVariant($product, $data);
         $this->storeImages($request, $product);

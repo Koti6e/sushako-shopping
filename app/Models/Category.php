@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'tagline', 'headline', 'description', 'image', 'accent', 'tax_slab_id', 'is_active', 'sort_order'])]
+#[Fillable(['name', 'slug', 'tagline', 'headline', 'description', 'image', 'accent', 'tax_slab_id', 'is_active', 'available_to_sellers', 'sort_order'])]
 class Category extends Model
 {
     public function taxSlab(): BelongsTo
@@ -24,6 +24,7 @@ class Category extends Model
     {
         return [
             'is_active' => 'boolean',
+            'available_to_sellers' => 'boolean',
         ];
     }
 }

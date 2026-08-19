@@ -8,6 +8,7 @@ use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +25,7 @@ class CheckoutFlowTest extends TestCase
         $this->createCheckoutProduct();
     }
 
-    public function test_unauthenticated_users_are_redirected_from_checkout_and_order_routes(): void
+    public function test_guest_users_are_protected_from_unowned_order_routes(): void
     {
         $order = $this->orderFor($this->customer(), [
             'status' => 'placed',
@@ -33,14 +34,11 @@ class CheckoutFlowTest extends TestCase
             'placed_at' => now(),
         ]);
 
-        $this->get(route('checkout'))->assertRedirect(route('login'));
-        $this->post(route('checkout.place'))->assertRedirect(route('login'));
-        $this->get(route('order.payment', $order->order_number))->assertRedirect(route('login'));
-        $this->post(route('order.payment.cod', $order->order_number))->assertRedirect(route('login'));
-        $this->get(route('order.success', $order->order_number))->assertRedirect(route('login'));
-        $this->get(route('order.invoice', $order->order_number))->assertRedirect(route('login'));
-        $this->postJson(route('order.payment.razorpay-test', $order->order_number))->assertRedirect(route('login'));
-        $this->get(route('orders.track'))->assertRedirect(route('login'));
+        $this->post(route('checkout.place'))->assertRedirect(route('cart.empty'));
+        $this->get(route('order.payment', $order->order_number))->assertNotFound();
+        $this->get(route('order.success', $order->order_number))->assertNotFound();
+        $this->get(route('order.invoice', $order->order_number))->assertNotFound();
+        $this->get(route('orders.track'))->assertOk()->assertSee('Track your Sushako order');
     }
 
     public function test_authenticated_customer_can_checkout_and_place_own_order(): void
@@ -53,7 +51,7 @@ class CheckoutFlowTest extends TestCase
         ]);
 
         $this->actingAs($customer)->post(route('cart.store'), [
-            'slug' => 'sushako-razorpay-test-product',
+            'slug' => 'sushako-checkout-product',
             'colour' => 'Standard',
             'size' => 'Standard',
             'quantity' => 1,
@@ -61,9 +59,9 @@ class CheckoutFlowTest extends TestCase
 
         $this->actingAs($customer)->get(route('checkout'))
             ->assertOk()
-            ->assertSee('Trusted delivery, protected payment')
+            ->assertSee('Guest checkout in a few steps')
             ->assertSee('Mobile Number')
-            ->assertSee('Address Line 1')
+            ->assertSee('Address')
             ->assertSee('assets/payments/razorpay.svg')
             ->assertSee('WhatsApp support')
             ->assertSee('Dispatch and delivery tracking');
@@ -117,7 +115,7 @@ class CheckoutFlowTest extends TestCase
             ->assertRedirect(route('order.success', $order->order_number));
 
         $order->refresh();
-        $variantStock = ProductVariant::query()->where('sku', 'SS-STAGE-001')->value('stock');
+        $variantStock = ProductVariant::query()->where('sku', 'SS-CHECKOUT-001')->value('stock');
 
         $this->assertSame('placed', $order->status);
         $this->assertSame('cod', $order->payment_method);
@@ -136,6 +134,48 @@ class CheckoutFlowTest extends TestCase
             ->assertSee('Track Your Order')
             ->assertSee('View shared delivery location')
             ->assertDontSee('id="rzp-button1"', false);
+    }
+
+    public function test_guest_can_checkout_with_mobile_number_and_place_order(): void
+    {
+        config(['services.razorpay.key' => 'YOUR_TEST_KEY_ID']);
+
+        $checkoutResponse = $this->withSession(['cart' => [$this->cartLine()]])
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Guest Buyer',
+                'customer_phone' => '9876543210',
+                'customer_email' => 'guest@example.test',
+                'address_line_1' => 'Door 12, First Street',
+                'address_line_2' => 'Apartment 4B',
+                'pincode' => '600001',
+                'delivery_location_url' => 'https://www.google.com/maps?q=13.0827,80.2707',
+                'terms' => '1',
+            ]);
+
+        $order = Order::query()->with('items')->firstOrFail();
+        $customer = User::query()->where('role', User::ROLE_CUSTOMER)->where('phone', '9876543210')->firstOrFail();
+
+        $checkoutResponse->assertRedirect(route('order.payment', $order->order_number));
+        $this->assertSame($customer->id, $order->user_id);
+        $this->assertSame('Guest Buyer', $order->customer_name);
+        $this->assertSame('9876543210', $order->customer_phone);
+        $this->assertSame('guest@example.test', $order->customer_email);
+        $this->assertSame('Not provided', $order->city);
+        $this->assertSame('payment_pending', $order->status);
+        $this->assertEmpty(session('cart', []));
+        $this->assertSame('9876543210', session('checkout_orders.'.$order->order_number.'.phone'));
+
+        $this->get(route('order.payment', $order->order_number))
+            ->assertOk()
+            ->assertSee('Choose payment to place order');
+
+        $this->post(route('order.payment.cod', $order->order_number))
+            ->assertRedirect(route('order.success', $order->order_number));
+
+        $this->get(route('order.success', $order->order_number))
+            ->assertOk()
+            ->assertSee('Hey Guest Buyer, your order placed successfully')
+            ->assertSee('Download Invoice');
     }
 
     public function test_customers_cannot_access_another_customers_orders(): void
@@ -174,13 +214,13 @@ class CheckoutFlowTest extends TestCase
             'placed_at' => now(),
         ]);
 
-        $this->actingAs($customer)->get(route('order.success', $order->order_number))->assertNotFound();
-        $this->actingAs($customer)->get(route('order.invoice', $order->order_number))->assertNotFound();
+        $this->actingAs($customer)->get(route('order.success', $order->order_number))->assertForbidden();
+        $this->actingAs($customer)->get(route('order.invoice', $order->order_number))->assertForbidden();
     }
 
     public function test_checkout_cart_items_can_be_updated_and_removed(): void
     {
-        $key = 'sushako-razorpay-test-product-Standard-Standard';
+        $key = 'sushako-checkout-product-Standard-Standard';
 
         $this->withSession(['cart' => [$key => $this->cartLine()]])
             ->patchJson(route('cart.update', $key), [
@@ -200,7 +240,7 @@ class CheckoutFlowTest extends TestCase
 
     public function test_buy_now_adds_product_and_goes_directly_to_checkout(): void
     {
-        $this->get(route('products.show', 'sushako-razorpay-test-product'))
+        $this->get(route('products.show', 'sushako-checkout-product'))
             ->assertOk()
             ->assertSee(route('cart.buy-now'), false)
             ->assertSee('Buy Now');
@@ -208,7 +248,7 @@ class CheckoutFlowTest extends TestCase
         $customer = $this->customer();
 
         $this->actingAs($customer)->post(route('cart.buy-now'), [
-            'slug' => 'sushako-razorpay-test-product',
+            'slug' => 'sushako-checkout-product',
             'colour' => 'Standard',
             'size' => 'Standard',
             'quantity' => 2,
@@ -220,7 +260,7 @@ class CheckoutFlowTest extends TestCase
             ->followingRedirects()
             ->get(route('checkout'))
             ->assertOk()
-            ->assertSee('Trusted delivery, protected payment')
+            ->assertSee('Guest checkout in a few steps')
             ->assertDontSee('Your cart is empty');
     }
 
@@ -343,7 +383,7 @@ class CheckoutFlowTest extends TestCase
 
     public function test_cart_page_is_luxury_editable_and_trusted(): void
     {
-        $key = 'sushako-razorpay-test-product-Standard-Standard';
+        $key = 'sushako-checkout-product-Standard-Standard';
 
         $this->withSession(['cart' => [$key => $this->cartLine()]])
             ->get(route('cart.empty'))
@@ -364,9 +404,9 @@ class CheckoutFlowTest extends TestCase
             ->withSession(['cart' => [$this->cartLine()]])
             ->post(route('checkout.place'), [
                 'customer_name' => 'Missing Address',
-                'customer_phone' => '9876543210',
+                'customer_phone' => '12345',
                 'terms' => '1',
-            ])->assertSessionHasErrors(['address_line_1', 'city', 'pincode']);
+            ])->assertSessionHasErrors(['customer_phone', 'address_line_1', 'pincode']);
     }
 
     public function test_customer_can_save_address_and_use_it_at_checkout(): void
@@ -435,7 +475,72 @@ class CheckoutFlowTest extends TestCase
 
         $this->actingAs($customer)->post(route('orders.track.lookup'), [
             'query' => $otherOrder->order_number,
-        ])->assertOk()->assertSee('No orders found');
+        ])->assertOk()->assertSee('No matching order found');
+    }
+
+    public function test_public_order_tracking_requires_matching_contact_details(): void
+    {
+        $customer = $this->customer(['phone' => '9876543210']);
+        $order = $this->orderFor($customer, [
+            'order_number' => 'SS'.now()->format('Ym').'00003',
+            'customer_phone' => '9876543210',
+            'customer_email' => 'track@example.test',
+            'customer_name' => 'Public Track Buyer',
+            'placed_at' => now(),
+        ]);
+
+        $this->post(route('orders.track.lookup'), [
+            'query' => $order->order_number,
+            'contact' => '0000000000',
+        ])->assertOk()
+            ->assertSee('No matching order found')
+            ->assertDontSee('Public Track Buyer');
+
+        $this->post(route('orders.track.lookup'), [
+            'query' => $order->order_number,
+            'contact' => '9876543210',
+        ])->assertOk()
+            ->assertSee($order->order_number)
+            ->assertSee('Public Track Buyer')
+            ->assertSee('Download Invoice');
+    }
+
+    public function test_public_tracking_unlocks_guest_payment_for_pending_orders(): void
+    {
+        $customer = $this->customer(['phone' => '9876543210']);
+        $order = $this->orderFor($customer, [
+            'order_number' => 'SS'.now()->format('Ym').'00004',
+            'customer_phone' => '9876543210',
+            'customer_email' => 'pending@example.test',
+            'customer_name' => 'Pending Guest Buyer',
+            'status' => 'payment_pending',
+            'payment_method' => 'unselected',
+            'payment_status' => 'pending',
+            'placed_at' => null,
+        ]);
+
+        $this->get(route('order.payment', $order->order_number))->assertNotFound();
+
+        $this->post(route('orders.track.lookup'), [
+            'query' => $order->order_number,
+            'contact' => '9876543210',
+        ])->assertOk()
+            ->assertSee('Complete Payment');
+
+        $this->get(route('order.payment', $order->order_number))
+            ->assertOk()
+            ->assertSee('Choose payment to place order');
+    }
+
+    public function test_customer_login_and_register_screens_are_retired(): void
+    {
+        $this->get(route('login'))
+            ->assertRedirect(route('orders.track'))
+            ->assertSessionHas('status');
+
+        $this->get(route('register'))
+            ->assertRedirect(route('shop'))
+            ->assertSessionHas('status');
     }
 
     public function test_customer_account_history_matches_orders_by_mobile(): void
@@ -465,14 +570,14 @@ class CheckoutFlowTest extends TestCase
 
     private function cartLine(): array
     {
-        $product = Product::query()->where('slug', 'sushako-razorpay-test-product')->firstOrFail();
+        $product = Product::query()->where('slug', 'sushako-checkout-product')->firstOrFail();
         $variant = $product->variants()->where('colour', 'Standard')->where('size', 'Standard')->firstOrFail();
 
         return [
             'product_id' => $product->id,
             'variant_id' => $variant->id,
-            'product' => 'Sushako Staging Sample Product',
-            'slug' => 'sushako-razorpay-test-product',
+            'product' => 'Sushako Checkout Product',
+            'slug' => 'sushako-checkout-product',
             'colour' => 'Standard',
             'size' => 'Standard',
             'quantity' => 1,
@@ -512,22 +617,27 @@ class CheckoutFlowTest extends TestCase
     private function createCheckoutProduct(): void
     {
         $category = Category::query()->where('slug', 'home-made-health-mix')->firstOrFail();
+        $officialStore = Vendor::query()->where('slug', 'sushako-official-store')->firstOrFail();
         $product = Product::query()->updateOrCreate([
-            'slug' => 'sushako-razorpay-test-product',
+            'slug' => 'sushako-checkout-product',
         ], [
+            'vendor_id' => $officialStore->id,
             'category_id' => $category->id,
-            'name' => 'Sushako Staging Sample Product',
-            'collection' => 'Payment Testing',
-            'subcategory' => 'Staging Sample',
+            'name' => 'Sushako Checkout Product',
+            'collection' => 'Sushako Essentials',
+            'subcategory' => 'Checkout Essentials',
             'brand' => 'Sushako',
             'badge' => 'Featured',
-            'short_description' => 'A one rupee staging product for checking cart, order creation and payment gateway flow before launch.',
+            'short_description' => 'A low value Sushako product for verifying secure checkout behavior.',
             'full_description' => 'A focused Sushako product experience built around secure checkout.',
             'mrp' => 1,
             'selling_price' => 1,
             'rating' => 5.0,
             'reviews' => 1,
             'is_published' => true,
+            'seller_status' => Product::SELLER_STATUS_APPROVED,
+            'local_delivery' => true,
+            'fulfillment_scope' => 'Sushako Fulfillment',
         ]);
 
         foreach ([
@@ -544,7 +654,7 @@ class CheckoutFlowTest extends TestCase
         }
 
         $product->variants()->updateOrCreate([
-            'sku' => 'SS-STAGE-001',
+            'sku' => 'SS-CHECKOUT-001',
         ], [
             'colour' => 'Standard',
             'colour_hex' => '#d8ccb9',

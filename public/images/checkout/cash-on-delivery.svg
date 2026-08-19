@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title desc">
+  <title id="title">Cash on delivery illustration</title>
+  <desc id="desc">A parcel being delivered at a doorstep with a simple payment note.</desc>
+  <rect width="640" height="480" rx="42" fill="#fffdf8"/>
+  <rect x="70" y="74" width="260" height="332" rx="28" fill="#f8f5ef" stroke="#e8e1d6" stroke-width="4"/>
+  <rect x="108" y="120" width="184" height="228" rx="16" fill="#ffffff"/>
+  <circle cx="204" cy="190" r="44" fill="#f1dfb3"/>
+  <path d="M182 195h44m-22-22v44" stroke="#9c7529" stroke-width="11" stroke-linecap="round"/>
+  <rect x="146" y="274" width="116" height="18" rx="9" fill="#14213d" opacity=".17"/>
+  <rect x="128" y="310" width="152" height="18" rx="9" fill="#c59a3d" opacity=".35"/>
+  <path d="M336 228l108-52 108 52-108 55-108-55Z" fill="#ead8ae"/>
+  <path d="M336 228v112l108 58V283l-108-55Z" fill="#c59a3d"/>
+  <path d="M552 228v112l-108 58V283l108-55Z" fill="#9c7529"/>
+  <path d="M397 198l108 55" stroke="#fff4cf" stroke-width="12" stroke-linecap="round" opacity=".7"/>
+  <path d="M446 130c38 0 70 31 70 70" fill="none" stroke="#2f6b4f" stroke-width="14" stroke-linecap="round" opacity=".3"/>
+  <path d="M500 190l16 14 20-31" fill="none" stroke="#2f6b4f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="90" cy="392" r="34" fill="#f2dfb0" opacity=".55"/>
+  <circle cx="578" cy="92" r="52" fill="#f4f7f5"/>
+</svg>

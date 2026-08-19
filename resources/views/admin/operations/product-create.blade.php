@@ -1,20 +1,8 @@
 <x-layouts.admin title="Add Product - Admin">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav aria-label="Admin navigation">
-                <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-                <a href="{{ route('admin.categories.index') }}">Categories</a>
-                <a href="{{ route('admin.products.index') }}">Products</a>
-                <a href="{{ route('admin.inventory.index') }}">Inventory</a>
-                <a href="{{ route('admin.orders.index') }}">Orders</a>
-                <a href="{{ route('admin.customers.index') }}">Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-        <main class="admin-main">
-            <header class="admin-topbar"><x-brand.logo href="{{ route('admin.dashboard') }}" loading="eager" /><span>Add Product</span></header>
+    <x-admin.shell eyebrow="Catalog" title="Add Product" subtitle="Create a live Sushako product with pricing, stock and strict image uploads.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.products.index')" tone="secondary" icon="fa-solid fa-box">Products</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
                 @if ($errors->any())
                     <div class="status-banner status-banner--error">{{ $errors->first() }}</div>
@@ -59,14 +47,11 @@
                     <label>Colour Hex <small>Optional swatch colour.</small><input name="colour_hex" value="{{ old('colour_hex') }}" placeholder="#111111"></label>
                     <label>Size <small>Optional. Usually for clothing only.</small><input name="size" value="{{ old('size') }}" placeholder="Example: M"></label>
                     <label>Opening Stock<input name="stock" type="number" min="0" value="{{ old('stock', 10) }}" required></label>
-                    <label class="admin-upload-button">
-                        <span><i class="fa-solid fa-image" aria-hidden="true"></i> Upload Product Images</span>
-                        <input name="images[]" type="file" multiple accept="image/jpeg,image/png,image/webp">
-                        <small>Only JPG, PNG or WEBP. Max 4 MB each.</small>
-                    </label>
-                    <button class="button button--primary" type="submit">Save Product</button>
+                    <x-ui.file-upload class="admin-field-wide" name="images[]" label="Upload product images" hint="Only JPG, PNG or WebP. Max 4 MB each." accept="image/jpeg,image/png,image/webp" multiple />
+                    <div class="admin-form-actions admin-field-wide">
+                        <button class="button button--primary" type="submit">Save Product</button>
+                    </div>
                 </form>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

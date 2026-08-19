@@ -28,6 +28,17 @@ class GoogleLoginTest extends TestCase
             ->assertRedirect('https://accounts.google.com/o/oauth2/auth');
     }
 
+    public function test_customer_auth_pages_redirect_to_guest_commerce(): void
+    {
+        $this->get(route('login'))
+            ->assertRedirect(route('orders.track'))
+            ->assertSessionHas('status');
+
+        $this->get(route('register'))
+            ->assertRedirect(route('shop'))
+            ->assertSessionHas('status');
+    }
+
     public function test_google_callback_creates_customer_and_requires_mobile_completion(): void
     {
         $this->mockGoogleUser('google-123', 'Google Customer', 'google-customer@example.test');

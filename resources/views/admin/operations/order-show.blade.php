@@ -4,38 +4,17 @@
         $providerLabel = $order->shipping_provider === 'others'
             ? $order->shipping_provider_other
             : ($shippingProviders[$order->shipping_provider] ?? 'Not selected');
-        $whatsAppText = rawurlencode("Hello {$order->customer_name},\n\nSushako Shopping order update:\nOrder ID: {$order->order_number}\nStatus: ".ucfirst($order->status)."\nCourier: {$providerLabel}\nTracking: ".($order->tracking_number ?: 'Will be updated soon')."\nTotal: INR {$order->total_amount}\n\nPlease login to your Sushako account to track this order.");
+        $whatsAppText = rawurlencode("Hello {$order->customer_name},\n\nSushako Shopping order update:\nOrder ID: {$order->order_number}\nStatus: ".ucfirst($order->status)."\nCourier: {$providerLabel}\nTracking: ".($order->tracking_number ?: 'Will be updated soon')."\nTotal: INR {$order->total_amount}\n\nYou can track this order from the Sushako Shopping order tracking page.");
     @endphp
 
-    <section class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav>
-                <a href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
-                <a href="{{ route('admin.products.index') }}"><i class="fa-solid fa-box"></i> Products</a>
-                <a href="{{ route('admin.inventory.index') }}"><i class="fa-solid fa-warehouse"></i> Inventory</a>
-                <a href="{{ route('admin.orders.index') }}"><i class="fa-solid fa-receipt"></i> Orders</a>
-                <a href="{{ route('admin.customers.index') }}"><i class="fa-solid fa-users"></i> Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-
-        <main class="admin-main">
-            <header class="admin-topbar admin-topbar--premium">
-                <div>
-                    <span>Order Details</span>
-                    <strong>{{ $order->order_number }}</strong>
-                </div>
-                <div class="admin-topbar-actions">
-                    <a class="button button--secondary" href="{{ route('admin.orders.index') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Order Queue</a>
-                    <a class="button button--secondary" href="{{ route('admin.orders.invoice', $order->order_number) }}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Invoice PDF</a>
-                    <form class="admin-global-logout admin-global-logout--top" method="POST" action="{{ route('admin.logout') }}">
-                        @csrf
-                        <button type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout</button>
-                    </form>
-                </div>
-            </header>
+    <x-admin.shell eyebrow="Orders / {{ $order->order_number }}" title="Order Details" :badge="$order->order_number" subtitle="Review customer, products, payment and shipment details.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.orders.index')" tone="ghost" icon="fa-solid fa-arrow-left">Order Queue</x-admin.action>
+            <x-admin.action :href="route('admin.orders.invoice', $order->order_number)" tone="outline" icon="fa-solid fa-file-pdf" target="_blank" rel="noopener noreferrer">Invoice PDF</x-admin.action>
+            @if ($order->latestShippingLabel)
+                <x-admin.action :href="route('admin.shipping-labels.show', $order->latestShippingLabel)" tone="primary" icon="fa-solid fa-tags">Shipping Label</x-admin.action>
+            @endif
+        </x-slot:actions>
 
             <section class="admin-dashboard-panel">
                 @if (session('status'))
@@ -70,7 +49,7 @@
                                 <p>Landmark: {{ $order->landmark }}</p>
                             @endif
                             @if ($order->delivery_location_url)
-                                <a href="{{ $order->delivery_location_url }}" target="_blank" rel="noopener noreferrer">Open shared map location</a>
+                                <a href="{{ $order->delivery_location_url }}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
                             @endif
                             <a class="button button--secondary" href="https://wa.me/91{{ preg_replace('/\D+/', '', $order->customer_phone) }}?text={{ $whatsAppText }}" target="_blank" rel="noopener noreferrer">
                                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Customer
@@ -138,7 +117,64 @@
                         <button class="button button--primary" type="submit">Update Shipment</button>
                     </form>
                 </section>
+
+                <section class="admin-shipment-panel">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Shipping Label</p>
+                            <h3>Label generation and delivery location</h3>
+                        </div>
+                        <span>{{ $order->latestShippingLabel?->label_number ?? 'Pending' }}</span>
+                    </div>
+
+                    <form method="POST" action="{{ route('admin.shipping-labels.generate', $order->order_number) }}" class="admin-shipping-form">
+                        @csrf
+                        <label>Brand Mode
+                            <select name="brand_mode">
+                                <option value="sushako">Sushako Branded</option>
+                                <option value="seller">Seller Branded</option>
+                                <option value="courier_neutral">Courier Neutral</option>
+                            </select>
+                        </label>
+                        <label>Fulfillment
+                            <select name="fulfillment_type">
+                                <option value="fulfilled_by_sushako">Fulfilled By Sushako</option>
+                                <option value="seller_direct">Seller Direct</option>
+                                <option value="warehouse">Warehouse</option>
+                            </select>
+                        </label>
+                        <label>Print Format
+                            <select name="print_format">
+                                <option value="a6_thermal">A6 Thermal</option>
+                                <option value="a5">A5</option>
+                                <option value="a4_single">A4 Single</option>
+                                <option value="a4_double">A4 Double</option>
+                                <option value="a4_four">A4 Four Labels</option>
+                            </select>
+                        </label>
+                        <label>Package Count<input name="package_count" type="number" min="1" max="99" value="1"></label>
+                        <label>Weight Grams<input name="weight_grams" type="number" min="1" placeholder="Optional"></label>
+                        <button class="button button--primary" type="submit">{{ $order->latestShippingLabel ? 'Generate New Label' : 'Generate Label' }}</button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.shipping-labels.location.update', $order->order_number) }}" class="admin-shipping-form">
+                        @csrf
+                        @method('PUT')
+                        <label>Latitude<input name="delivery_latitude" value="{{ old('delivery_latitude', $order->delivery_latitude) }}"></label>
+                        <label>Longitude<input name="delivery_longitude" value="{{ old('delivery_longitude', $order->delivery_longitude) }}"></label>
+                        <label>Google Maps URL<input name="delivery_location_url" type="url" value="{{ old('delivery_location_url', $order->delivery_location_url) }}"></label>
+                        <label>Capture Method
+                            <select name="location_capture_method">
+                                <option value="admin_updated">Admin Updated</option>
+                                <option value="gps">GPS</option>
+                                <option value="google_maps_pin">Google Maps Pin</option>
+                                <option value="manual_entry">Manual Entry</option>
+                            </select>
+                        </label>
+                        <label class="admin-check-row"><input name="location_confirmed" type="checkbox" value="1" @checked($order->location_confirmed)> Location Confirmed</label>
+                        <button class="button button--secondary" type="submit">Save Delivery Location</button>
+                    </form>
+                </section>
             </section>
-        </main>
-    </section>
+    </x-admin.shell>
 </x-layouts.admin>

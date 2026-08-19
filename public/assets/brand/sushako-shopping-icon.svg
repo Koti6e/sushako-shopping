@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Sushako Shopping icon</title>
+  <desc id="desc">Premium navy and gold shopping bag icon for Sushako Shopping.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#132A49"/><stop offset="1" stop-color="#061427"/></linearGradient>
+    <linearGradient id="bag" x1="118" y1="92" x2="386" y2="430" gradientUnits="userSpaceOnUse"><stop stop-color="#204A78"/><stop offset=".55" stop-color="#0E2A4E"/><stop offset="1" stop-color="#07162A"/></linearGradient>
+    <linearGradient id="gold" x1="86" y1="70" x2="422" y2="445" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF2BE"/><stop offset=".35" stop-color="#D2B36A"/><stop offset=".66" stop-color="#9B7436"/><stop offset="1" stop-color="#F5D98F"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <path d="M150 187h212l25 193c3.2 24.3-15.7 45.8-40.2 45.8H165.2c-24.5 0-43.4-21.5-40.2-45.8l25-193Z" fill="url(#bag)" stroke="url(#gold)" stroke-width="26" stroke-linejoin="round"/>
+  <path d="M189 194c0-60 30.5-105 67-105s67 45 67 105" stroke="url(#gold)" stroke-width="28" stroke-linecap="round"/>
+  <path d="M216 199c0-38 18-65 40-65s40 27 40 65" stroke="#FFF4C9" stroke-opacity=".34" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="197" cy="210" r="18" fill="#FFF4C9"/>
+  <circle cx="315" cy="210" r="18" fill="#FFF4C9"/>
+</svg>

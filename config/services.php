@@ -51,6 +51,7 @@ return [
         'secret' => env('RAZORPAY_KEY_SECRET'),
         'currency' => env('RAZORPAY_CURRENCY', 'INR'),
         'callback_url' => env('RAZORPAY_CALLBACK_URL'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
         'test_order_id' => env('RAZORPAY_TEST_ORDER_ID'),
         'test_mode' => env('RAZORPAY_TEST_MODE', true),
     ],

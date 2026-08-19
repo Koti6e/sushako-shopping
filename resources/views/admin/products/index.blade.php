@@ -1,24 +1,9 @@
 <x-layouts.admin title="Products - Admin">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <x-brand.logo context="admin" href="{{ route('admin.dashboard') }}" loading="eager" />
-            <nav aria-label="Admin navigation">
-                <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-                <a href="{{ route('admin.categories.index') }}">Categories</a>
-                <a href="{{ route('admin.products.index') }}">Products</a>
-                <a href="{{ route('admin.inventory.index') }}">Inventory</a>
-                <a href="{{ route('admin.orders.index') }}">Orders</a>
-                <a href="{{ route('admin.customers.index') }}">Customers</a>
-                <a href="{{ route('admin.settings.company') }}"><i class="fa-solid fa-gear"></i> Settings</a>
-                <a href="{{ route('home') }}">Storefront</a>
-            </nav>
-            <x-admin.side-meta />
-        </aside>
-        <main class="admin-main">
-            <header class="admin-topbar">
-                <x-brand.logo href="{{ route('admin.dashboard') }}" loading="eager" />
-                <span>Product Management</span>
-            </header>
+    <x-admin.shell eyebrow="Product Management" title="Own-store products" subtitle="Review products, pricing, stock status and quick actions.">
+        <x-slot:actions>
+            <x-admin.action :href="route('admin.categories.create')" tone="secondary" icon="fa-solid fa-layer-group">Add Category</x-admin.action>
+            <x-admin.action :href="route('admin.products.create')" tone="primary" icon="fa-solid fa-plus">Add Product</x-admin.action>
+        </x-slot:actions>
             <section class="admin-dashboard-panel">
                 @if (session('status'))
                     <div class="status-banner">{{ session('status') }}</div>
@@ -26,7 +11,6 @@
                 <p class="eyebrow">Product Management</p>
                 <h1>Own-store products</h1>
                 <p class="lede">Review Sushako products, pricing, stock status and quick actions from one focused catalog view.</p>
-                <a class="button button--primary" href="{{ route('admin.products.create') }}">Add Product</a>
                 <div class="admin-table">
                     @foreach ($products as $product)
                         <article>
@@ -41,6 +25,5 @@
                     @endforeach
                 </div>
             </section>
-        </main>
-    </div>
+    </x-admin.shell>
 </x-layouts.admin>

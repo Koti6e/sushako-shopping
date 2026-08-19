@@ -1,8 +1,9 @@
 @props(['title' => 'Sushako Shopping'])
 @php
     $authUser = auth()->user();
-    $accountHref = route('login');
-    $accountLabel = 'Login';
+    $accountHref = route('orders.track');
+    $accountLabel = 'Track Order';
+    $adminAccessHref = route('admin.login');
 
     if ($authUser?->role === \App\Models\User::ROLE_CUSTOMER) {
         $accountHref = route('account.show');
@@ -10,11 +11,29 @@
     } elseif ($authUser?->hasRole(\App\Models\User::ROLE_SUPER_ADMIN)) {
         $accountHref = route('admin.dashboard');
         $accountLabel = 'Admin Dashboard';
+        $adminAccessHref = route('admin.dashboard');
+    } elseif ($authUser?->role === \App\Models\User::ROLE_SELLER) {
+        $accountHref = route('seller.dashboard');
+        $accountLabel = 'Seller Dashboard';
     }
 
-    $departments = \App\Support\ProductCatalog::departments();
-    $storeProducts = \App\Support\ProductCatalog::products();
+    $departments = collect(\App\Support\ProductCatalog::departments());
+    $storeProducts = collect(\App\Support\ProductCatalog::products());
     $navigationDepartments = $departments;
+    $cartCount = collect(session('cart', []))->sum('quantity');
+    $wishlistCount = count(session('wishlist', []));
+    $popularSearches = $storeProducts->pluck('name')->take(5)->values();
+    $sellerSearches = \App\Models\Vendor::query()
+        ->where('store_status', \App\Models\Vendor::STORE_LIVE)
+        ->where('store_visibility', \App\Models\Vendor::VISIBILITY_PUBLISHED)
+        ->orderBy('store_display_name')
+        ->limit(5)
+        ->get(['store_display_name', 'business_name', 'slug']);
+    $deliveryLocation = session('delivery_location');
+    $deliveryLabel = data_get($deliveryLocation, 'label', 'Set location');
+    $logoutRoute = $authUser?->hasRole(\App\Models\User::ROLE_SUPER_ADMIN)
+        ? route('admin.logout')
+        : ($authUser?->role === \App\Models\User::ROLE_SELLER ? route('seller.logout') : route('logout'));
 @endphp
 
 <!DOCTYPE html>
@@ -26,14 +45,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta property="og:title" content="{{ $title ?? 'Sushako Shopping' }}">
     <meta property="og:description" content="Premium multi-category shopping from Sushako with secure payments and support">
-    <meta property="og:image" content="{{ asset('images/brand/sushako-shopping-logo-optimized.png') }}">
+    <meta property="og:image" content="{{ asset('assets/brand/sushako-shopping-official-full.png') }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/brand/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/brand/favicon-16x16.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/brand/apple-touch-icon.png') }}">
-    <link rel="preload" as="image" href="{{ asset('images/brand/sushako-shopping-logo-optimized.webp') }}" type="image/webp">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-official-favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-official-favicon-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-official-apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" type="image/webp">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
     <title>{{ $title ?? 'Sushako Shopping' }}</title>
     <script>
@@ -127,10 +146,7 @@
 <body class="customer-body">
     <div class="page-loader" data-page-loader aria-hidden="true">
         <div class="page-loader__mark">
-            <picture>
-                <source srcset="{{ asset('images/brand/sushako-shopping-logo-optimized.webp') }}" type="image/webp">
-                <img class="page-loader__logo" src="{{ asset('images/brand/sushako-shopping-logo-optimized.png') }}" alt="Sushako Shopping" width="420" height="236" decoding="async">
-            </picture>
+            <img class="page-loader__logo" src="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" alt="Sushako Shopping" width="760" height="220" decoding="async">
             <span></span>
         </div>
     </div>
@@ -143,92 +159,131 @@
     </div>
     <header class="site-header" data-surface="customer-header">
         <div class="site-shell site-header__inner">
-            <x-brand.logo loading="eager" />
-            <nav class="desktop-nav desktop-nav--mega" aria-label="Primary navigation">
-                <a href="{{ route('home') }}">Home</a>
-                <a href="{{ route('shop') }}">Products</a>
-                @foreach ($navigationDepartments as $department)
-                    @php
-                        $popularProducts = $storeProducts->where('department_slug', $department['slug'])->take(3);
-                    @endphp
-                    <div class="mega-nav-item">
-                        <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
-                        <div class="mega-menu" style="--department-accent: {{ $department['accent'] }}">
-                            <div class="mega-menu__intro">
-                                <img src="{{ $department['image'] }}" alt="{{ $department['name'] }} category" loading="lazy">
-                                <p class="eyebrow">{{ $department['tagline'] }}</p>
-                                <strong>{{ $department['headline'] }}</strong>
-                                <span>{{ $department['description'] }}</span>
-                                <small>{{ $department['offers'][0] ?? 'Marketplace deals available' }}</small>
-                            </div>
-                            <div class="mega-menu__columns">
-                                <section>
-                                    <h3>Featured Categories</h3>
-                                    @foreach (array_slice($department['sidebar'], 0, 4) as $group => $items)
-                                        <a href="{{ route('department.show', $department['slug']) }}?category={{ urlencode($group) }}">{{ $group }}</a>
-                                    @endforeach
-                                </section>
-                                <section>
-                                    <h3>Popular Products</h3>
-                                    @forelse ($popularProducts as $product)
-                                        <a href="{{ route('products.show', $product['slug']) }}">{{ $product['name'] }}</a>
-                                    @empty
-                                        <a href="{{ route('department.show', $department['slug']) }}">View department products</a>
-                                    @endforelse
-                                </section>
-                                <section>
-                                    <h3>Trending Brands</h3>
-                                    @foreach (array_slice($department['brands'], 0, 5) as $brand)
-                                        <a href="{{ route('department.show', $department['slug']) }}?brand={{ urlencode($brand) }}">{{ $brand }}</a>
-                                    @endforeach
-                                </section>
-                                @foreach (array_slice($department['sidebar'], 0, 3) as $group => $items)
-                                    <section>
-                                        <h3>{{ $group }}</h3>
-                                        @foreach ($items as $item)
-                                            <a href="{{ route('department.show', $department['slug']) }}?category={{ urlencode($item) }}">{{ $item }}</a>
-                                        @endforeach
-                                    </section>
+            <div class="site-header__left">
+                <x-brand.logo loading="eager" />
+                <nav class="desktop-nav desktop-nav--mega" aria-label="Primary navigation">
+                    <a href="{{ route('home') }}">Home</a>
+                    <a href="{{ route('shop') }}">Products</a>
+                    @if ($navigationDepartments->isNotEmpty())
+                        <details class="site-nav-menu">
+                            <summary>Categories <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+                            <div>
+                                @foreach ($navigationDepartments->take(8) as $department)
+                                    <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
                                 @endforeach
                             </div>
-                        </div>
-                    </div>
-                @endforeach
-            </nav>
-            <form method="GET" action="{{ route('search') }}" class="header-search">
+                        </details>
+                    @endif
+                </nav>
+            </div>
+            <form method="GET" action="{{ route('search') }}" class="header-search header-search--enterprise" data-enterprise-search data-suggestions-url="{{ route('search.suggestions') }}">
                 <label class="sr-only" for="site-search">Search</label>
-                <input id="site-search" name="q" placeholder="Search products">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="site-search" name="q" value="{{ request('q') }}" placeholder="Search products, categories and stores" autocomplete="off" data-search-placeholder data-search-input>
+                <button type="button" class="header-search__clear" data-search-clear aria-label="Clear search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                <div class="header-search__panel" data-search-panel hidden>
+                    <div class="header-search__state" data-search-state>Type at least 2 characters to search products, categories and stores.</div>
+                    <div data-search-results></div>
+                    <a class="header-search__view-all" href="{{ route('search') }}" data-search-view-all hidden>View All Results</a>
+                </div>
             </form>
-            <nav class="header-actions" aria-label="Account navigation">
+            <div class="site-header__right">
+                <details class="delivery-location-selector" data-location-selector>
+                    <summary>
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        <span><small>Delivering to</small><strong>{{ $deliveryLabel }}</strong></span>
+                    </summary>
+                    <div class="delivery-location-selector__panel">
+                        <strong>Choose delivery location</strong>
+                        <p>Allow location to discover nearby stores and products deliverable to your area. You can also enter it manually.</p>
+                        <button type="button" data-location-gps><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Use Current Location</button>
+                        <form method="POST" action="{{ route('location.store') }}" data-location-manual>
+                            @csrf
+                            <input type="hidden" name="source" value="manual">
+                            <label>Search City or Area<input name="area" value="{{ data_get($deliveryLocation, 'area') }}" placeholder="Chengalpattu"></label>
+                            <label>Enter Pincode<input name="pincode" value="{{ data_get($deliveryLocation, 'pincode') }}" inputmode="numeric" maxlength="12" placeholder="603002"></label>
+                            <button type="submit">Save Location</button>
+                        </form>
+                        @if ($deliveryLocation)
+                            <form method="POST" action="{{ route('location.clear') }}">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="delivery-location-selector__clear">Clear Location</button>
+                            </form>
+                        @endif
+                    </div>
+                </details>
+                <a class="header-track-link" href="{{ route('orders.track') }}">
+                    <i class="fa-solid fa-route" aria-hidden="true"></i>
+                    <span>Track Order</span>
+                </a>
+                <nav class="header-actions" aria-label="Account navigation">
                 @if ($storeProducts->isNotEmpty())
                     <form method="POST" action="{{ route('wishlist.toggle') }}" data-wishlist-form>
                         @csrf
                         <input type="hidden" name="slug" value="{{ $storeProducts->first()['slug'] }}">
                         <button type="submit" class="header-icon-button" aria-label="Wishlist" title="Wishlist">
                             <i class="fa-regular fa-heart" aria-hidden="true"></i>
-                            <span class="action-badge" data-wishlist-count>{{ count(session('wishlist', [])) }}</span>
+                            <span class="action-badge" data-wishlist-count>{{ $wishlistCount }}</span>
                         </button>
                     </form>
                 @endif
-                <a class="header-icon-button" href="{{ $accountHref }}" aria-label="{{ $accountLabel }}" title="{{ $accountLabel }}">
-                    <i class="fa-regular fa-user" aria-hidden="true"></i>
-                </a>
+                <details class="account-dropdown" data-account-dropdown>
+                    <summary class="header-icon-button" aria-label="{{ $accountLabel }}" title="{{ $accountLabel }}">
+                        <i class="fa-regular fa-user" aria-hidden="true"></i>
+                    </summary>
+                    <div class="account-dropdown__panel">
+                        @guest
+                            <a href="{{ route('orders.track') }}"><i class="fa-solid fa-route" aria-hidden="true"></i> Track Order</a>
+                            <a href="{{ route('shop') }}?wishlist=1"><i class="fa-regular fa-heart" aria-hidden="true"></i> Wishlist</a>
+                            <a href="{{ route('seller.login') }}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> Become Seller</a>
+                            <a href="#help"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help</a>
+                        @else
+                            <a href="{{ $accountHref }}"><i class="fa-regular fa-user" aria-hidden="true"></i> {{ $authUser->hasRole(\App\Models\User::ROLE_SUPER_ADMIN) ? 'Dashboard' : 'My Account' }}</a>
+                            <a href="{{ route('orders.track') }}"><i class="fa-solid fa-box" aria-hidden="true"></i> Orders</a>
+                            <a href="{{ route('shop') }}?wishlist=1"><i class="fa-regular fa-heart" aria-hidden="true"></i> Wishlist</a>
+                            @if ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
+                                <a href="{{ route('account.show') }}#addresses"><i class="fa-regular fa-address-book" aria-hidden="true"></i> Saved Addresses</a>
+                            @endif
+                            <a href="#notifications"><i class="fa-regular fa-bell" aria-hidden="true"></i> Notifications</a>
+                            <a href="{{ $accountHref }}#settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
+                            <form method="POST" action="{{ $logoutRoute }}">
+                                @csrf
+                                <button type="submit"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Logout</button>
+                            </form>
+                        @endguest
+                    </div>
+                </details>
                 <a class="header-icon-button" href="{{ route('cart.empty') }}" aria-label="Shopping cart" title="Cart">
                     <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
-                    <span class="action-badge" data-cart-count>{{ count(session('cart', [])) }}</span>
+                    <span class="action-badge" data-cart-count>{{ $cartCount }}</span>
                 </a>
                 @auth
                     @if ($authUser->hasRole(\App\Models\User::ROLE_SUPER_ADMIN))
-                        <a class="seller-header-link" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span>Admin Dashboard</span></a>
+                        <a class="seller-header-link" href="{{ $adminAccessHref }}"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span>Admin Dashboard</span></a>
                     @endif
                 @endauth
-            </nav>
-            <a class="mobile-header-action" href="{{ $accountHref }}" aria-label="{{ $accountLabel }}">
+                </nav>
+                <a class="header-track-link seller-header-link--storefront" href="{{ route('seller.login') }}">
+                    <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+                    <span>Become a Seller</span>
+                </a>
+            </div>
+            <a class="mobile-header-action mobile-header-action--account" href="{{ $accountHref }}" aria-label="{{ $accountLabel }}">
                 <i class="fa-regular fa-user" aria-hidden="true"></i>
+                <span class="mobile-header-action__text">Account</span>
             </a>
-            <a class="mobile-header-action" href="{{ route('cart.empty') }}" aria-label="Open cart">
+            <a class="mobile-header-action mobile-header-action--orders" href="{{ route('orders.track') }}" aria-label="Track order">
+                <i class="fa-solid fa-route" aria-hidden="true"></i>
+                <span class="mobile-header-action__text">Track Order</span>
+            </a>
+            <a class="mobile-header-action mobile-header-action--seller" href="{{ route('seller.login') }}" aria-label="Become a seller">
+                <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+                <span class="mobile-header-action__text">Become Seller</span>
+            </a>
+            <a class="mobile-header-action mobile-header-action--cart" href="{{ route('cart.empty') }}" aria-label="Open cart">
                 <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
-                <span data-cart-count>{{ count(session('cart', [])) }}</span>
+                <span class="mobile-header-action__badge" data-cart-count>{{ $cartCount }}</span>
             </a>
         </div>
     </header>
@@ -236,6 +291,8 @@
     <main>
         {{ $slot }}
     </main>
+
+    <x-mobile-bottom-nav />
 
     <div class="toast" data-toast role="status" aria-live="polite">Added to Cart</div>
 
@@ -281,6 +338,46 @@
 
     <x-cookie-consent-banner />
 
+    <script>
+        (() => {
+            const gpsButton = document.querySelector('[data-location-gps]');
+            gpsButton?.addEventListener('click', async () => {
+                if (!navigator.geolocation) {
+                    alert('Location is not supported by this browser. Please enter your city or pincode manually.');
+                    return;
+                }
+
+                const ok = confirm('Allow location to discover nearby stores and products deliverable to your area. You can also enter your location manually.');
+                if (!ok) return;
+
+                gpsButton.disabled = true;
+                gpsButton.textContent = 'Detecting...';
+
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                    await fetch(@json(route('location.store')), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                        },
+                        body: JSON.stringify({
+                            source: 'gps',
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        }),
+                    });
+                    window.location.reload();
+                }, () => {
+                    gpsButton.disabled = false;
+                    gpsButton.textContent = 'Use Current Location';
+                    alert('We could not access your location. Please enter your city or pincode manually.');
+                }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+            });
+        })();
+    </script>
+
     <footer class="site-footer" data-surface="customer-footer">
         <section class="footer-newsletter" aria-label="Stay updated">
             <div class="site-shell footer-newsletter__inner">
@@ -316,12 +413,11 @@
             <nav aria-label="Customer footer links">
                 <h2><i class="fa-regular fa-user" aria-hidden="true"></i> Customer</h2>
                 @guest
-                    <a href="{{ route('login') }}">Login</a>
-                    <a href="{{ route('register') }}">Register</a>
+                    <a href="{{ route('orders.track') }}">Track Order</a>
                 @elseif ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
                     <a href="{{ route('account.show') }}">My Account</a>
                 @elseif ($authUser->hasRole(\App\Models\User::ROLE_SUPER_ADMIN))
-                    <a href="{{ route('admin.dashboard') }}">Admin Dashboard</a>
+                    <a href="{{ $adminAccessHref }}">Admin Dashboard</a>
                 @endguest
                 @auth
                     @if ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
@@ -340,7 +436,7 @@
             <nav aria-label="Store footer links">
                 <h2><i class="fa-solid fa-store" aria-hidden="true"></i> Sushako Store</h2>
                 <a href="{{ route('shop') }}">All Products</a>
-                @foreach (array_slice($departments, 0, 3) as $department)
+                @foreach ($departments->take(3) as $department)
                     <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
                 @endforeach
             </nav>
@@ -350,6 +446,7 @@
                 <a href="#help">Help Center</a>
                 <a href="#faq">FAQ</a>
                 <a href="{{ route('policies.cookie') }}">Cookie Policy</a>
+                <a href="{{ $adminAccessHref }}">Admin Login</a>
                 <a href="#privacy">Privacy Policy</a>
                 <a href="#terms">Terms & Conditions</a>
                 <a href="#shipping">Shipping Policy</a>

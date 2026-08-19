@@ -24,10 +24,7 @@
                 @if ($errors->any())
                     <div class="status-banner">{{ $errors->first() }}</div>
                 @endif
-                <a href="{{ route('login.google') }}" class="button button--google auth-google-button">
-                    <span class="google-mark">G</span>
-                    <span>Continue with Google</span>
-                </a>
+                <x-google-auth-button :href="route('login.google')" />
                 <div class="auth-divider"><span>or sign in with email</span></div>
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email">

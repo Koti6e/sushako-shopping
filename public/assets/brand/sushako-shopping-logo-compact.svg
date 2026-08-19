@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="128" viewBox="0 0 460 128" role="img" aria-labelledby="title desc">
+  <title id="title">Sushako Shopping compact logo</title>
+  <desc id="desc">Compact Sushako Shopping logo with bag icon and Sushako text.</desc>
+  <defs>
+    <linearGradient id="navy" x1="15" y1="18" x2="101" y2="113" gradientUnits="userSpaceOnUse"><stop stop-color="#17345A"/><stop offset="1" stop-color="#08172B"/></linearGradient>
+    <linearGradient id="gold" x1="12" y1="8" x2="112" y2="119" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF2BE"/><stop offset=".55" stop-color="#B98D44"/><stop offset="1" stop-color="#F4D990"/></linearGradient>
+  </defs>
+  <g fill="none">
+    <g transform="translate(14 10)">
+      <path d="M24 39h71l9 64c.9 6.5-4.2 12.2-10.7 12.2H25.7c-6.5 0-11.6-5.7-10.7-12.2l9-64Z" fill="url(#navy)" stroke="url(#gold)" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M36 42c0-18.2 11.3-31.2 23.2-31.2S82.5 23.8 82.5 42" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="39" cy="47" r="5" fill="#FFF4C9"/><circle cx="80" cy="47" r="5" fill="#FFF4C9"/>
+    </g>
+    <text x="138" y="74" fill="#0E2038" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700">Sushako</text>
+  </g>
+</svg>
