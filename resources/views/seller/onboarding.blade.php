@@ -38,10 +38,6 @@
         --ob-danger: #c62828;
         --ob-success: #087443;
         --ob-radius: 18px;
-        --ob-info: #0e6b8a;
-        --ob-info-bg: #e8f4fa;
-        --ob-warning: #b45f06;
-        --ob-warning-bg: #fff3e0;
     }
 
     .seller-ob-page {
@@ -54,7 +50,7 @@
     }
 
     .seller-ob-shell {
-        width: min(960px, 100%);
+        width: min(920px, 100%);
         margin: 0 auto;
         animation: sellerObEnter .45s ease both;
     }
@@ -138,19 +134,6 @@
         margin: 0 0 5px;
         font-size: 19px;
         letter-spacing: -.015em;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .seller-ob-heading .step-badge {
-        font-size: 11px;
-        font-weight: 800;
-        background: var(--ob-accent-soft);
-        color: var(--ob-accent);
-        padding: 2px 12px;
-        border-radius: 99px;
-        letter-spacing: .04em;
     }
 
     .seller-ob-heading p {
@@ -158,22 +141,6 @@
         color: var(--ob-muted);
         font-size: 14px;
         line-height: 1.5;
-    }
-
-    .seller-ob-heading .seller-tip {
-        margin-top: 10px;
-        padding: 12px 16px;
-        background: var(--ob-info-bg);
-        border-left: 4px solid var(--ob-info);
-        border-radius: 8px;
-        font-size: 13px;
-        color: var(--ob-info);
-        font-weight: 500;
-        line-height: 1.5;
-    }
-
-    .seller-ob-heading .seller-tip strong {
-        color: var(--ob-text);
     }
 
     .seller-ob-grid {
@@ -194,10 +161,6 @@
 
     .seller-ob-field--wide {
         grid-column: 1 / -1;
-    }
-
-    .seller-ob-field--half {
-        grid-column: span 1;
     }
 
     .seller-ob-field input,
@@ -232,15 +195,10 @@
         box-shadow: 0 0 0 4px rgba(184, 138, 50, .13);
     }
 
-    .seller-ob-field .field-hint {
+    .seller-ob-field small {
         color: var(--ob-muted);
         font-weight: 500;
         line-height: 1.45;
-        font-size: 12px;
-    }
-
-    .seller-ob-field .field-hint--success {
-        color: var(--ob-success);
     }
 
     .seller-ob-error {
@@ -266,11 +224,6 @@
         color: #475569;
         white-space: nowrap;
         font-size: 13px;
-        background: #f8fafc;
-        border-right: 1px solid #e5e7eb;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
     }
 
     .seller-phone-field input,
@@ -279,7 +232,6 @@
         border-radius: 0;
         min-width: 0;
         box-shadow: none !important;
-        padding: 11px 13px;
     }
 
     .seller-logo-upload {
@@ -394,13 +346,6 @@
         display: block;
         font-weight: 800;
         font-size: 14px;
-    }
-
-    .seller-segmented .segmented-desc {
-        font-weight: 400;
-        font-size: 12px;
-        color: var(--ob-muted);
-        margin-top: 2px;
     }
 
     .seller-toggle-row {
@@ -657,7 +602,7 @@
     }
 
     .seller-ob-alert {
-        width: min(960px, 100%);
+        width: min(920px, 100%);
         box-sizing: border-box;
         margin: 0 auto 15px;
         border-radius: 12px;
@@ -676,45 +621,6 @@
         background: #fff1f1;
         color: #a62323;
         border: 1px solid #f0cccc;
-    }
-
-    /* Address Type Selector */
-    .address-type-selector {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-    }
-
-    .address-type-selector label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 18px;
-        border: 1.5px solid var(--ob-border);
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 700;
-        transition: all .2s ease;
-        background: white;
-    }
-
-    .address-type-selector label:hover {
-        border-color: var(--ob-accent);
-    }
-
-    .address-type-selector label.is-selected {
-        border-color: var(--ob-accent);
-        background: var(--ob-accent-soft);
-    }
-
-    .address-type-selector input {
-        display: none;
-    }
-
-    .address-type-selector .addr-icon {
-        font-size: 18px;
     }
 
     [hidden] {
@@ -763,10 +669,6 @@
             grid-column: auto;
         }
 
-        .seller-ob-field--half {
-            grid-column: auto;
-        }
-
         .seller-segmented {
             grid-template-columns: 1fr;
         }
@@ -796,12 +698,6 @@
 
         .seller-toggle-row {
             align-items: center;
-        }
-
-        .address-type-selector label {
-            flex: 1;
-            min-width: 120px;
-            justify-content: center;
         }
     }
 
@@ -857,24 +753,15 @@
                 <span class="required-star">*</span> Required fields
             </div>
 
-            {{-- ============================================================ --}}
-            {{-- 1. BUSINESS DETAILS                                           --}}
-            {{-- ============================================================ --}}
+            {{-- BUSINESS DETAILS --}}
             <section class="seller-ob-section">
                 <div class="seller-ob-heading">
-                    <h2>
-                        Business Details
-                        <span class="step-badge">Step 1 of 7</span>
-                    </h2>
+                    <h2>1. Business Details</h2>
                     <p>Use the details customers should recognise when shopping from your store.</p>
-                    <div class="seller-tip">
-                        💡 <strong>Pro Tip:</strong> Use your legal business name as it appears on your GST/PAN documents. This helps with verification and builds customer trust.
-                    </div>
                 </div>
 
                 <div class="seller-ob-grid">
 
-                    {{-- Business Name --}}
                     <label class="seller-ob-field seller-ob-field--wide">
                         <span>
                             Business Name <span class="required-star">*</span>
@@ -887,95 +774,80 @@
                             maxlength="100"
                             required
                             autocomplete="organization"
-                            placeholder="e.g., Sushako Organic Foods"
+                            placeholder="Enter your business name"
                         >
-
-                        <span class="field-hint">
-                            This appears on invoices, delivery labels, and customer communications.
-                        </span>
 
                         @error('business_name')
                             <span class="seller-ob-error">{{ $message }}</span>
                         @enderror
                     </label>
 
-                    {{-- Address Type Selector --}}
-                    <div class="seller-ob-field seller-ob-field--wide">
-                        <span>Address Type <span class="required-star">*</span></span>
-
-                        <div class="address-type-selector" data-address-type-selector>
-                            <label class="is-selected">
-                                <input type="radio" name="address_type" value="residential" checked>
-                                <span class="addr-icon">🏠</span>
-                                Residential
-                            </label>
-                            <label>
-                                <input type="radio" name="address_type" value="commercial">
-                                <span class="addr-icon">🏢</span>
-                                Commercial
-                            </label>
-                            <label>
-                                <input type="radio" name="address_type" value="industrial">
-                                <span class="addr-icon">🏭</span>
-                                Industrial
-                            </label>
-                            <label>
-                                <input type="radio" name="address_type" value="warehouse">
-                                <span class="addr-icon">📦</span>
-                                Warehouse
-                            </label>
-                        </div>
-
-                        <span class="field-hint">
-                            Your address type helps us optimise delivery routing and logistics.
-                        </span>
-
-                        @error('address_type')
-                            <span class="seller-ob-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    {{-- Address Line 1 --}}
                     <label class="seller-ob-field seller-ob-field--wide">
                         <span>
-                            Address Line 1 <span class="required-star">*</span>
+                            Business Address <span class="required-star">*</span>
                         </span>
 
-                        <input
-                            name="address_line_1"
-                            value="{{ old('address_line_1', $vendor->address_line_1) }}"
+                        <textarea
+                            name="business_address"
+                            rows="3"
                             required
-                            autocomplete="address-line1"
-                            placeholder="e.g., 123, Main Road, Anna Nagar"
-                        >
+                            autocomplete="street-address"
+                            placeholder="Enter your complete business address"
+                        >{{ old('business_address', $vendor->address_line_1) }}</textarea>
 
-                        @error('address_line_1')
+                        @error('business_address')
                             <span class="seller-ob-error">{{ $message }}</span>
                         @enderror
                     </label>
 
-                    {{-- Address Line 2 --}}
-                    <label class="seller-ob-field seller-ob-field--wide">
-                        <span>Address Line 2 <small>(Optional)</small></span>
-
-                        <input
-                            name="address_line_2"
-                            value="{{ old('address_line_2', $vendor->address_line_2) }}"
-                            autocomplete="address-line2"
-                            placeholder="e.g., Landmark: Near Metro Station, Floor/Suite"
-                        >
-
-                        <span class="field-hint">
-                            Useful for locating your shop — landmark, building name, floor number, etc.
+                    <label class="seller-ob-field">
+                        <span>
+                            Pincode <span class="required-star">*</span>
                         </span>
 
-                        @error('address_line_2')
+                        <input
+                            name="postal_code"
+                            inputmode="numeric"
+                            maxlength="6"
+                            pattern="\d{6}"
+                            value="{{ old('postal_code', $vendor->postal_code) }}"
+                            required
+                            data-digits-only
+                            data-pincode="business"
+                            placeholder="603001"
+                        >
+
+                        @error('postal_code')
                             <span class="seller-ob-error">{{ $message }}</span>
                         @enderror
                     </label>
 
-                    {{-- City --}}
-                    <label class="seller-ob-field seller-ob-field--half">
+                    <label class="seller-ob-field">
+                        <span>
+                            Phone Number <span class="required-star">*</span>
+                        </span>
+
+                        <span class="seller-phone-field">
+                            <b>+91</b>
+
+                            <input
+                                name="phone"
+                                inputmode="numeric"
+                                maxlength="10"
+                                pattern="[6-9]\d{9}"
+                                value="{{ $sellerPhoneValue }}"
+                                required
+                                data-digits-only
+                                placeholder="9876543210"
+                            >
+                        </span>
+
+                        @error('phone')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field">
                         <span>
                             City <span class="required-star">*</span>
                         </span>
@@ -985,7 +857,7 @@
                             value="{{ old('city', $vendor->city) }}"
                             required
                             autocomplete="address-level2"
-                            placeholder="e.g., Chennai, Bengaluru"
+                            placeholder="Chengalpattu"
                         >
 
                         @error('city')
@@ -993,8 +865,7 @@
                         @enderror
                     </label>
 
-                    {{-- State --}}
-                    <label class="seller-ob-field seller-ob-field--half">
+                    <label class="seller-ob-field">
                         <span>
                             State <span class="required-star">*</span>
                         </span>
@@ -1015,85 +886,6 @@
                         @enderror
                     </label>
 
-                    {{-- Pincode --}}
-                    <label class="seller-ob-field seller-ob-field--half">
-                        <span>
-                            Pincode <span class="required-star">*</span>
-                        </span>
-
-                        <input
-                            name="postal_code"
-                            inputmode="numeric"
-                            maxlength="6"
-                            pattern="\d{6}"
-                            value="{{ old('postal_code', $vendor->postal_code) }}"
-                            required
-                            data-digits-only
-                            data-pincode="business"
-                            placeholder="603001"
-                        >
-
-                        <span class="field-hint">
-                            6-digit Indian pincode.
-                        </span>
-
-                        @error('postal_code')
-                            <span class="seller-ob-error">{{ $message }}</span>
-                        @enderror
-                    </label>
-
-                    {{-- Phone --}}
-                    <label class="seller-ob-field seller-ob-field--half">
-                        <span>
-                            Phone Number <span class="required-star">*</span>
-                        </span>
-
-                        <span class="seller-phone-field">
-                            <b>+91</b>
-
-                            <input
-                                name="phone"
-                                inputmode="numeric"
-                                maxlength="10"
-                                pattern="[6-9]\d{9}"
-                                value="{{ $sellerPhoneValue }}"
-                                required
-                                data-digits-only
-                                placeholder="9876543210"
-                            >
-                        </span>
-
-                        <span class="field-hint">
-                            10-digit Indian mobile number. Used for order updates and delivery coordination.
-                        </span>
-
-                        @error('phone')
-                            <span class="seller-ob-error">{{ $message }}</span>
-                        @enderror
-                    </label>
-
-                    {{-- Email (Optional but recommended) --}}
-                    <label class="seller-ob-field seller-ob-field--half">
-                        <span>Business Email <small>(Optional)</small></span>
-
-                        <input
-                            name="business_email"
-                            type="email"
-                            value="{{ old('business_email', $vendor->email ?? auth()->user()->email) }}"
-                            autocomplete="email"
-                            placeholder="shop@yourbusiness.com"
-                        >
-
-                        <span class="field-hint">
-                            Recommended for professional communication and invoices.
-                        </span>
-
-                        @error('business_email')
-                            <span class="seller-ob-error">{{ $message }}</span>
-                        @enderror
-                    </label>
-
-                    {{-- Business Logo --}}
                     <div class="seller-ob-field seller-ob-field--wide">
                         <span>Business Logo <small>(Optional)</small></span>
 
@@ -1126,9 +918,9 @@
                                 </div>
                             </div>
 
-                            <span class="field-hint">
-                                PNG, JPG or WEBP. Recommended size: 400×400px. Max 2MB.
-                            </span>
+                            <small>
+                                PNG, JPG or WEBP. Maximum size according to platform upload rules.
+                            </small>
                         </div>
 
                         @error('business_logo')
@@ -1139,19 +931,11 @@
                 </div>
             </section>
 
-            {{-- ============================================================ --}}
-            {{-- 2. TAX DETAILS                                                --}}
-            {{-- ============================================================ --}}
+            {{-- TAX --}}
             <section class="seller-ob-section">
                 <div class="seller-ob-heading">
-                    <h2>
-                        Tax Details
-                        <span class="step-badge">Step 2 of 7</span>
-                    </h2>
+                    <h2>2. Tax Details</h2>
                     <p>Choose the option that currently applies to your business.</p>
-                    <div class="seller-tip">
-                        💡 <strong>Product Architect's Note:</strong> If you're a new business, you can start without GST and add it later. We'll help you display tax-inclusive/exclusive pricing based on your selection.
-                    </div>
                 </div>
 
                 <div class="seller-choice-title">
@@ -1176,7 +960,6 @@
                             @checked($gstRegistered === 'no')
                         >
                         <span>No, I don't have GST</span>
-                        <span class="segmented-desc">I'm a new or small business</span>
                     </label>
 
                     <label
@@ -1191,13 +974,11 @@
                             @checked($gstRegistered === 'yes')
                         >
                         <span>Yes, I have GST</span>
-                        <span class="segmented-desc">I'm GST registered</span>
                     </label>
                 </div>
 
                 <div class="seller-ob-grid">
 
-                    {{-- GSTIN --}}
                     <label
                         class="seller-ob-field seller-ob-field--wide seller-conditional"
                         data-gstin-field
@@ -1215,16 +996,13 @@
                             style="text-transform:uppercase"
                         >
 
-                        <span class="field-hint">
-                            15-character GSTIN format: 2-digit state code + 10-digit PAN + 1 entity code + 1 check digit + "Z" + 1 check digit.
-                        </span>
+                        <small>Enter your 15-character GSTIN.</small>
 
                         @error('gstin')
                             <span class="seller-ob-error">{{ $message }}</span>
                         @enderror
                     </label>
 
-                    {{-- PAN --}}
                     <label
                         class="seller-ob-field seller-ob-field--wide seller-conditional"
                         data-pan-field
@@ -1238,4 +1016,701 @@
                             value="{{ old('pan_number', $vendor->pan_number) }}"
                             maxlength="10"
                             autocomplete="off"
-                            placeholder="ABCDE1234
+                            placeholder="ABCDE1234F"
+                            style="text-transform:uppercase"
+                        >
+
+                        <small>PAN is required when GST registration is not available.</small>
+
+                        @error('pan_number')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                </div>
+            </section>
+
+            {{-- PICKUP --}}
+            <section class="seller-ob-section">
+                <div class="seller-ob-heading">
+                    <h2>3. Pickup Address</h2>
+                    <p>This is where customer delivery distance will be calculated from.</p>
+                </div>
+
+                <label class="seller-toggle-row">
+                    <span class="seller-toggle-copy">
+                        <strong>Same as Business Address</strong>
+                        <small>Use your business location as the order pickup location.</small>
+                    </span>
+
+                    <span class="seller-switch">
+                        <input
+                            type="hidden"
+                            name="pickup_same_as_business"
+                            value="0"
+                        >
+
+                        <input
+                            type="checkbox"
+                            name="pickup_same_as_business"
+                            value="1"
+                            @checked($pickupSame)
+                            data-pickup-toggle
+                        >
+
+                        <span class="seller-switch-track"></span>
+                    </span>
+                </label>
+
+                <div
+                    class="seller-ob-grid seller-conditional"
+                    data-pickup-fields
+                    @if ($pickupSame) hidden @endif
+                >
+
+                    <label class="seller-ob-field seller-ob-field--wide">
+                        <span>
+                            Pickup Address <span class="required-star">*</span>
+                        </span>
+
+                        <textarea
+                            name="pickup_address"
+                            rows="3"
+                            placeholder="Enter pickup address"
+                        >{{ old('pickup_address', $vendor->pickup_address_line_1) }}</textarea>
+
+                        @error('pickup_address')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field">
+                        <span>
+                            Pickup Pincode <span class="required-star">*</span>
+                        </span>
+
+                        <input
+                            name="pickup_postal_code"
+                            inputmode="numeric"
+                            maxlength="6"
+                            pattern="\d{6}"
+                            value="{{ old('pickup_postal_code', $vendor->pickup_postal_code) }}"
+                            data-digits-only
+                            data-pincode="pickup"
+                            placeholder="603001"
+                        >
+
+                        @error('pickup_postal_code')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field">
+                        <span>
+                            Pickup City <span class="required-star">*</span>
+                        </span>
+
+                        <input
+                            name="pickup_city"
+                            value="{{ old('pickup_city', $vendor->pickup_city) }}"
+                            placeholder="Chengalpattu"
+                        >
+
+                        @error('pickup_city')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field">
+                        <span>
+                            Pickup State <span class="required-star">*</span>
+                        </span>
+
+                        <select name="pickup_state">
+                            @foreach ($indianStates as $stateName)
+                                <option
+                                    value="{{ $stateName }}"
+                                    @selected(old('pickup_state', $vendor->pickup_state ?: 'Tamil Nadu') === $stateName)
+                                >
+                                    {{ $stateName }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        @error('pickup_state')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                </div>
+            </section>
+
+            {{-- DELIVERY --}}
+            <section class="seller-ob-section">
+                <div class="seller-ob-heading">
+                    <h2>4. Delivery Setup</h2>
+                    <p>Configure the area you serve and how customers are charged for delivery.</p>
+                </div>
+
+                <div class="seller-ob-grid">
+
+                    <label class="seller-ob-field">
+                        <span>
+                            Delivery Radius <span class="required-star">*</span>
+                        </span>
+
+                        <span class="seller-money-field">
+                            <input
+                                type="number"
+                                min="1"
+                                max="500"
+                                step="1"
+                                name="delivery_radius"
+                                value="{{ old('delivery_radius', $vendor->delivery_radius ?: 10) }}"
+                                required
+                                inputmode="numeric"
+                                data-delivery-preview-input
+                            >
+                            <b>km</b>
+                        </span>
+
+                        @error('delivery_radius')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field">
+                        <span>
+                            Delivery Charge <span class="required-star">*</span>
+                        </span>
+
+                        <span class="seller-money-field">
+                            <b>₹</b>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                name="flat_shipping_charge"
+                                value="{{ old('flat_shipping_charge', $vendor->flat_shipping_charge ?? 40) }}"
+                                required
+                                inputmode="decimal"
+                                data-delivery-preview-input
+                            >
+                        </span>
+
+                        @error('flat_shipping_charge')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                    <label class="seller-ob-field seller-ob-field--wide">
+                        <span>Free Shipping Above</span>
+
+                        <span class="seller-money-field">
+                            <b>₹</b>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                name="free_shipping_threshold"
+                                value="{{ old('free_shipping_threshold', $vendor->free_shipping_threshold ?? 999) }}"
+                                inputmode="decimal"
+                                data-delivery-preview-input
+                            >
+                        </span>
+
+                        @error('free_shipping_threshold')
+                            <span class="seller-ob-error">{{ $message }}</span>
+                        @enderror
+                    </label>
+
+                </div>
+
+                <div class="seller-delivery-preview" data-delivery-preview>
+                    ₹40 delivery within 10 km · FREE above ₹999
+                </div>
+            </section>
+
+            {{-- RETURN POLICY --}}
+            <section class="seller-ob-section">
+                <div class="seller-ob-heading">
+                    <h2>5. Return Policy</h2>
+                    <p>
+                        Choose whether your shop normally accepts returns.
+                        Customer protection for wrong, damaged, missing, counterfeit or undelivered orders still applies.
+                    </p>
+                </div>
+
+                <div class="seller-choice-title">
+                    Do you accept customer returns?
+                    <span class="required-star">*</span>
+                </div>
+
+                <div
+                    class="seller-segmented"
+                    role="radiogroup"
+                    aria-label="Return policy"
+                >
+                    <label
+                        @class(['is-selected' => $returnsAccepted === 'yes'])
+                        data-return-option
+                    >
+                        <input
+                            type="radio"
+                            name="returns_accepted"
+                            value="yes"
+                            required
+                            @checked($returnsAccepted === 'yes')
+                        >
+                        <span>Returns Allowed</span>
+                    </label>
+
+                    <label
+                        @class(['is-selected' => $returnsAccepted === 'no'])
+                        data-return-option
+                    >
+                        <input
+                            type="radio"
+                            name="returns_accepted"
+                            value="no"
+                            required
+                            @checked($returnsAccepted === 'no')
+                        >
+                        <span>No Returns</span>
+                    </label>
+                </div>
+
+                <label
+                    class="seller-ob-field seller-ob-field--wide seller-conditional"
+                    data-return-window-field
+                >
+                    <span>
+                        Return Window <span class="required-star">*</span>
+                    </span>
+
+                    <select name="return_window_days">
+                        @foreach ([1, 3, 5, 7] as $days)
+                            <option
+                                value="{{ $days }}"
+                                @selected((int) old('return_window_days', $vendor->return_window_days ?: 3) === $days)
+                            >
+                                {{ $days }} {{ str('day')->plural($days) }} from delivery
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @error('return_window_days')
+                        <span class="seller-ob-error">{{ $message }}</span>
+                    @enderror
+                </label>
+            </section>
+
+            {{-- COMMERCIAL TERMS --}}
+            <section class="seller-ob-section">
+                <div class="seller-ob-heading">
+                    <h2>6. Seller Terms & Charges</h2>
+                    <p>Please understand these rules before activating your shop.</p>
+                </div>
+
+                <div class="seller-commercial-card">
+
+                    <div class="seller-commercial-row">
+                        <strong>Free Starter Plan</strong>
+                        <span>
+                            Your shop starts on the Free Plan with
+                            <span class="seller-commercial-highlight">Sushako branding</span>.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Sushako Commission</strong>
+                        <span>
+                            <span class="seller-commercial-highlight">
+                                ₹1 commission per applicable product/order item
+                            </span>
+                            under the Free Plan according to Sushako's current commission rules.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Online Payments</strong>
+                        <span>
+                            Razorpay/payment gateway charges are
+                            <span class="seller-commercial-highlight">
+                                separate from Sushako commission
+                            </span>
+                            and apply to eligible online transactions.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Refund Charges</strong>
+                        <span>
+                            Where payment gateway charges are non-refundable, applicable charges may be deducted from the refundable amount and will be disclosed according to the platform refund flow.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Settlements</strong>
+                        <span>
+                            Eligible seller settlements are normally processed within
+                            <span class="seller-commercial-highlight">T+3 to T+5 days</span>,
+                            subject to successful order completion, valid payout details and no active refund/dispute.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Bank Details</strong>
+                        <span>
+                            You may start listing products before adding bank details, but valid bank details are required before payout.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Order Acceptance</strong>
+                        <span>
+                            Orders should be accepted within
+                            <span class="seller-commercial-highlight">24 hours</span>.
+                            After 24 hours, the customer may choose to continue waiting or request a refund according to platform rules.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Delivery</strong>
+                        <span>
+                            Sellers are responsible for fulfilling orders under the Sushako self-shipping model using the delivery settings configured for their store.
+                        </span>
+                    </div>
+
+                    <div class="seller-commercial-row">
+                        <strong>Cancellation</strong>
+                        <span>
+                            Normal cancellation is permitted only until the order is shipped, subject to applicable Sushako order and customer-protection rules.
+                        </span>
+                    </div>
+
+                </div>
+            </section>
+
+            {{-- AGREEMENT --}}
+            <section class="seller-ob-section">
+                <div class="seller-ob-heading">
+                    <h2>7. Agreement</h2>
+                    <p>Your shop can be activated after you acknowledge the platform rules.</p>
+                </div>
+
+                <div class="seller-policy-box">
+                    <h3>Sushako Seller Policies</h3>
+
+                    <p>
+                        These policies cover seller commissions, online payment charges,
+                        settlements, order acceptance, refunds, returns, delivery responsibilities
+                        and platform/customer-protection requirements.
+                    </p>
+
+                    <div class="seller-policy-details">
+
+                        <details>
+                            <summary>Commission & Payment Policy</summary>
+                            <p>
+                                Free Plan sellers are subject to the current ₹1 Sushako commission rule.
+                                Razorpay/payment gateway charges are separate from Sushako commission.
+                            </p>
+                        </details>
+
+                        <details>
+                            <summary>Settlement Policy</summary>
+                            <p>
+                                Eligible settlements are normally processed within T+3 to T+5 days
+                                after the applicable order requirements are satisfied.
+                            </p>
+                        </details>
+
+                        <details>
+                            <summary>Order Acceptance & Refund Policy</summary>
+                            <p>
+                                Sellers should accept orders within 24 hours. If the seller does not
+                                accept within that period, the customer may continue waiting or request
+                                a refund according to the platform workflow.
+                            </p>
+                        </details>
+
+                        <details>
+                            <summary>Return & Customer Protection Policy</summary>
+                            <p>
+                                The selected store return policy applies to normal returns.
+                                Platform/customer-protection rules may still apply to wrong, damaged,
+                                missing, counterfeit or undelivered orders.
+                            </p>
+                        </details>
+
+                    </div>
+
+                    <label class="seller-agreement">
+                        <input
+                            type="checkbox"
+                            name="seller_terms_accepted"
+                            value="1"
+                            required
+                            data-terms-checkbox
+                        >
+
+                        <span>
+                            I have read and agree to the Sushako Seller Terms,
+                            commission structure, payment gateway charges,
+                            settlement policy, 24-hour order acceptance rule,
+                            return/refund rules and applicable platform policies.
+                            <span class="required-star">*</span>
+                        </span>
+                    </label>
+
+                    @error('seller_terms_accepted')
+                        <span class="seller-ob-error">{{ $message }}</span>
+                    @enderror
+                </div>
+            </section>
+
+            {{-- FINAL --}}
+            <footer class="seller-ob-footer">
+
+                <div class="seller-before-continue">
+                    <strong>Before you continue</strong>
+
+                    <ul>
+                        <li>Your Free Starter Plan will be activated.</li>
+                        <li>Free Plan Sushako commission rules apply.</li>
+                        <li>Razorpay charges are separate for online payments.</li>
+                        <li>Eligible settlements normally follow T+3–T+5 processing rules.</li>
+                        <li>Bank details are required before settlement payout.</li>
+                        <li>Orders should be accepted within 24 hours.</li>
+                        <li>Your selected return policy will apply to your store where appropriate.</li>
+                    </ul>
+                </div>
+
+                <div class="seller-ob-footer-actions">
+
+                    <a
+                        class="seller-ob-back"
+                        href="{{ route('home') }}"
+                    >
+                        ← Back to Shop
+                    </a>
+
+                    <button
+                        class="seller-ob-submit"
+                        type="submit"
+                        data-primary-submit
+                        disabled
+                    >
+                        Complete Setup & Create My Shop →
+                    </button>
+
+                </div>
+            </footer>
+
+        </form>
+    </div>
+</div>
+
+<script>
+(() => {
+    const root = document.querySelector('[data-seller-onboarding]');
+    if (!root) return;
+
+    const form = root.querySelector('[data-onboarding-form]');
+    const submitButton = root.querySelector('[data-primary-submit]');
+    const termsCheckbox = root.querySelector('[data-terms-checkbox]');
+
+    const syncTaxFields = () => {
+        const value =
+            root.querySelector('input[name="gst_registered"]:checked')?.value || 'no';
+
+        root.querySelectorAll('[data-gst-option]').forEach((label) => {
+            label.classList.toggle(
+                'is-selected',
+                label.querySelector('input')?.value === value
+            );
+        });
+
+        const gstField = root.querySelector('[data-gstin-field]');
+        const panField = root.querySelector('[data-pan-field]');
+
+        const gstInput = gstField?.querySelector('input');
+        const panInput = panField?.querySelector('input');
+
+        if (gstField) {
+            gstField.hidden = value !== 'yes';
+        }
+
+        if (panField) {
+            panField.hidden = value !== 'no';
+        }
+
+        if (gstInput) {
+            gstInput.required = value === 'yes';
+        }
+
+        if (panInput) {
+            panInput.required = value === 'no';
+        }
+    };
+
+    const syncPickup = () => {
+        const same =
+            root.querySelector('[data-pickup-toggle]')?.checked ?? true;
+
+        const fields = root.querySelector('[data-pickup-fields]');
+        if (!fields) return;
+
+        fields.hidden = same;
+
+        fields.querySelectorAll('input, textarea, select').forEach((field) => {
+            field.required = !same;
+        });
+    };
+
+    const syncReturns = () => {
+        const value =
+            root.querySelector('input[name="returns_accepted"]:checked')?.value || 'no';
+
+        root.querySelectorAll('[data-return-option]').forEach((label) => {
+            label.classList.toggle(
+                'is-selected',
+                label.querySelector('input')?.value === value
+            );
+        });
+
+        const windowField = root.querySelector('[data-return-window-field]');
+        const select = windowField?.querySelector('select');
+
+        if (windowField) {
+            windowField.hidden = value !== 'yes';
+        }
+
+        if (select) {
+            select.required = value === 'yes';
+        }
+    };
+
+    const syncDeliveryPreview = () => {
+        const radius =
+            root.querySelector('input[name="delivery_radius"]')?.value || '0';
+
+        const charge =
+            root.querySelector('input[name="flat_shipping_charge"]')?.value || '0';
+
+        const free =
+            root.querySelector('input[name="free_shipping_threshold"]')?.value || '';
+
+        const preview = root.querySelector('[data-delivery-preview]');
+        if (!preview) return;
+
+        const chargeText =
+            Number(charge || 0).toLocaleString('en-IN', {
+                maximumFractionDigits: 2
+            });
+
+        let text = `₹${chargeText} delivery within ${radius} km`;
+
+        if (free !== '') {
+            text += ` · FREE above ₹${Number(free).toLocaleString('en-IN')}`;
+        }
+
+        preview.textContent = text;
+    };
+
+    const syncTerms = () => {
+        if (!submitButton || !termsCheckbox) return;
+
+        submitButton.disabled = !termsCheckbox.checked;
+    };
+
+    const syncLogoPreview = (event) => {
+        const file = event.target.files?.[0];
+
+        const filename = root.querySelector('[data-logo-file-name]');
+        const image = root.querySelector('[data-logo-image]');
+
+        if (!file) {
+            if (filename) filename.textContent = 'No file selected';
+            return;
+        }
+
+        if (filename) {
+            filename.textContent = file.name;
+        }
+
+        if (image && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+
+            reader.onload = (loadEvent) => {
+                image.src = loadEvent.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+    };
+
+    root.querySelectorAll('input[name="gst_registered"]').forEach((input) => {
+        input.addEventListener('change', syncTaxFields);
+    });
+
+    root.querySelectorAll('input[name="returns_accepted"]').forEach((input) => {
+        input.addEventListener('change', syncReturns);
+    });
+
+    root.querySelector('[data-pickup-toggle]')
+        ?.addEventListener('change', syncPickup);
+
+    root.querySelectorAll('[data-delivery-preview-input]').forEach((input) => {
+        input.addEventListener('input', syncDeliveryPreview);
+    });
+
+    root.querySelector('[data-logo-input]')
+        ?.addEventListener('change', syncLogoPreview);
+
+    termsCheckbox?.addEventListener('change', syncTerms);
+
+    root.querySelectorAll('[data-digits-only]').forEach((input) => {
+        input.addEventListener('input', () => {
+            const max = Number(input.getAttribute('maxlength') || 10);
+
+            input.value = input.value
+                .replace(/\D+/g, '')
+                .slice(0, max);
+        });
+    });
+
+    root.querySelectorAll('input[name="gstin"], input[name="pan_number"]')
+        .forEach((input) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.toUpperCase();
+            });
+        });
+
+    form?.addEventListener('submit', (event) => {
+        if (!form.checkValidity()) {
+            return;
+        }
+
+        if (!termsCheckbox?.checked) {
+            event.preventDefault();
+            termsCheckbox?.focus();
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating your shop...';
+        }
+    });
+
+    syncTaxFields();
+    syncPickup();
+    syncReturns();
+    syncDeliveryPreview();
+    syncTerms();
+})();
+</script>
+
+</x-layouts.seller>
