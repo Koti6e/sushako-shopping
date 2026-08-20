@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ShippingLabel;
 use App\Models\ShippingLabelEvent;
 use App\Models\User;
+use App\Models\Vendor;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
@@ -31,24 +32,25 @@ class ShippingLabelService
             }
 
             $version = ((int) $order->shippingLabels()->max('version')) + 1;
+            $branding = $this->labelBrandingForOrder($order, $options);
             $label = ShippingLabel::query()->create([
                 'order_id' => $order->id,
                 'label_number' => $this->nextLabelNumber($order, $version),
                 'version' => $version,
                 'status' => ShippingLabel::STATUS_GENERATED,
                 'fulfillment_type' => $options['fulfillment_type'] ?? ShippingLabel::FULFILLMENT_SUSHAKO,
-                'brand_mode' => $options['brand_mode'] ?? ShippingLabel::BRAND_SUSHAKO,
+                'brand_mode' => $branding['brand_mode'],
                 'print_format' => $options['print_format'] ?? 'a6_thermal',
                 'courier_code' => $options['courier_code'] ?? $order->shipping_provider,
                 'courier_name' => $options['courier_name'] ?? $this->courierName($order),
                 'warehouse_name' => $options['warehouse_name'] ?? 'Sushako Dispatch',
                 'warehouse_address' => $options['warehouse_address'] ?? 'Sushako Shopping Fulfilment Desk',
-                'seller_name' => $options['seller_name'] ?? 'Sushako Shopping',
-                'seller_logo_path' => $options['seller_logo_path'] ?? null,
-                'seller_address' => $options['seller_address'] ?? 'Sushako Shopping',
-                'seller_gst' => $options['seller_gst'] ?? null,
-                'seller_contact' => $options['seller_contact'] ?? config('services.whatsapp.support_number'),
-                'seller_return_address' => $options['seller_return_address'] ?? 'Return to Sushako Shopping Fulfilment Desk',
+                'seller_name' => $branding['seller_name'],
+                'seller_logo_path' => $branding['seller_logo_path'],
+                'seller_address' => $branding['seller_address'],
+                'seller_gst' => $branding['seller_gst'],
+                'seller_contact' => $branding['seller_contact'],
+                'seller_return_address' => $branding['seller_return_address'],
                 'package_count' => max(1, (int) ($options['package_count'] ?? 1)),
                 'package_index' => max(1, (int) ($options['package_index'] ?? 1)),
                 'weight_grams' => $options['weight_grams'] ?? null,
@@ -60,6 +62,9 @@ class ShippingLabelService
                 'metadata' => [
                     'future_courier_payload' => [],
                     'source' => $previous ? 'regeneration' : 'manual_admin_generation',
+                    'seller_plan' => $branding['plan'],
+                    'branding_rule' => $branding['label'],
+                    'requested_brand_mode' => $options['brand_mode'] ?? null,
                 ],
             ]);
 
@@ -124,6 +129,38 @@ class ShippingLabelService
         return filled($order->delivery_location_url) ? $order->delivery_location_url : null;
     }
 
+    public function labelBrandingForVendor(Vendor $vendor, array $options = []): array
+    {
+        $plan = $vendor->current_plan ?: Vendor::PLAN_FREE;
+        $sellerName = $vendor->store_display_name ?: $vendor->business_name ?: $vendor->user?->name ?: 'Seller';
+
+        if ($plan === Vendor::PLAN_ENTERPRISE) {
+            return [
+                'plan' => Vendor::PLAN_ENTERPRISE,
+                'label' => 'Own Branding Label',
+                'brand_mode' => ShippingLabel::BRAND_SELLER,
+                'seller_name' => $options['seller_name'] ?? $sellerName,
+                'seller_logo_path' => $options['seller_logo_path'] ?? $vendor->business_logo_path,
+                'seller_address' => $options['seller_address'] ?? ($vendor->pickup_address ?: $vendor->address_line_1 ?: $sellerName),
+                'seller_gst' => $options['seller_gst'] ?? $vendor->gstin,
+                'seller_contact' => $options['seller_contact'] ?? ($vendor->phone ?: config('services.whatsapp.support_number')),
+                'seller_return_address' => $options['seller_return_address'] ?? ($vendor->return_address ?: $vendor->pickup_address ?: 'Return to '.$sellerName),
+            ];
+        }
+
+        return [
+            'plan' => $plan === Vendor::PLAN_GROWTH ? Vendor::PLAN_GROWTH : Vendor::PLAN_FREE,
+            'label' => $plan === Vendor::PLAN_GROWTH ? 'Sushako Labelling' : 'Sushako Branding',
+            'brand_mode' => ShippingLabel::BRAND_SUSHAKO,
+            'seller_name' => $sellerName,
+            'seller_logo_path' => null,
+            'seller_address' => $vendor->pickup_address ?: $vendor->address_line_1 ?: 'Sushako Shopping',
+            'seller_gst' => $vendor->gstin,
+            'seller_contact' => $vendor->phone ?: config('services.whatsapp.support_number'),
+            'seller_return_address' => $vendor->return_address ?: 'Return to Sushako Shopping Fulfilment Desk',
+        ];
+    }
+
     public function codeSvgDataUri(string $payload, string $type = 'qr'): string
     {
         if ($type === 'barcode') {
@@ -180,5 +217,26 @@ class ShippingLabelService
             'others' => $order->shipping_provider_other,
             default => null,
         };
+    }
+
+    private function labelBrandingForOrder(Order $order, array $options): array
+    {
+        $vendor = $order->items()->with('vendor.user')->whereNotNull('vendor_id')->first()?->vendor;
+
+        if ($vendor) {
+            return $this->labelBrandingForVendor($vendor, $options);
+        }
+
+        return [
+            'plan' => null,
+            'label' => 'Sushako Branding',
+            'brand_mode' => $options['brand_mode'] ?? ShippingLabel::BRAND_SUSHAKO,
+            'seller_name' => $options['seller_name'] ?? 'Sushako Shopping',
+            'seller_logo_path' => $options['seller_logo_path'] ?? null,
+            'seller_address' => $options['seller_address'] ?? 'Sushako Shopping',
+            'seller_gst' => $options['seller_gst'] ?? null,
+            'seller_contact' => $options['seller_contact'] ?? config('services.whatsapp.support_number'),
+            'seller_return_address' => $options['seller_return_address'] ?? 'Return to Sushako Shopping Fulfilment Desk',
+        ];
     }
 }

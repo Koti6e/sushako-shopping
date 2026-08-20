@@ -23,24 +23,64 @@
             <label>Flat shipping charge<input type="number" step="0.01" name="flat_shipping_charge" value="{{ old('flat_shipping_charge', $vendor->flat_shipping_charge) }}"></label>
             <label>Free shipping threshold<input type="number" step="0.01" name="free_shipping_threshold" value="{{ old('free_shipping_threshold', $vendor->free_shipping_threshold) }}"></label>
             <label>Delivery radius<input type="number" name="delivery_radius" value="{{ old('delivery_radius', $vendor->delivery_radius) }}"></label>
-            <fieldset class="seller-field--wide">
+            @php
+                $selectedWorkingDays = old('working_days', $vendor->working_days ?? []);
+                $openingTime = old('opens_at', $vendor->opens_at);
+                $closingTime = old('closes_at', $vendor->closes_at);
+                $formatTime = fn ($time) => filled($time) ? \Illuminate\Support\Carbon::createFromFormat('H:i', substr((string) $time, 0, 5))->format('h:i A') : null;
+                $hoursLabel = $formatTime($openingTime) && $formatTime($closingTime)
+                    ? $formatTime($openingTime).' -> '.$formatTime($closingTime)
+                    : 'Set opening and closing time';
+            @endphp
+            <fieldset class="seller-field--wide seller-working-hours-panel">
                 <legend>Working days</legend>
-                <div class="seller-working-hours-grid">
+                <p>Choose the days your store accepts dispatch work. Open days use the business hours below.</p>
+                <div class="seller-working-hours-grid" data-working-hours-grid data-hours-label="{{ $hoursLabel }}">
                     @foreach (['mon' => 'Monday','tue' => 'Tuesday','wed' => 'Wednesday','thu' => 'Thursday','fri' => 'Friday','sat' => 'Saturday','sun' => 'Sunday'] as $key => $label)
-                        <label class="seller-working-hours-day">
+                        @php $isOpen = in_array($key, $selectedWorkingDays, true); @endphp
+                        <label class="seller-working-hours-day" data-working-day>
                             <span class="seller-working-hours-day__name">{{ $label }}</span>
                             <span class="seller-working-hours-day__toggle">
-                                <input type="checkbox" name="working_days[]" value="{{ $key }}" @checked(in_array($key, old('working_days', $vendor->working_days ?? []), true))>
-                                <span>{{ in_array($key, old('working_days', $vendor->working_days ?? []), true) ? 'Open' : 'Closed' }}</span>
+                                <input type="checkbox" name="working_days[]" value="{{ $key }}" @checked($isOpen) data-working-day-toggle>
+                                <span data-working-day-state>{{ $isOpen ? 'Open' : 'Closed' }}</span>
                             </span>
+                            <span @class(['seller-working-hours-day__hours', 'is-closed' => ! $isOpen]) data-working-day-hours>{{ $isOpen ? $hoursLabel : 'Closed' }}</span>
                         </label>
                     @endforeach
                 </div>
+                @error('working_days')<span class="seller-field-error">{{ $message }}</span>@enderror
+                @error('working_days.*')<span class="seller-field-error">{{ $message }}</span>@enderror
             </fieldset>
-            <label>Opening time<input type="time" name="opens_at" value="{{ old('opens_at', $vendor->opens_at) }}"></label>
-            <label>Closing time<input type="time" name="closes_at" value="{{ old('closes_at', $vendor->closes_at) }}"></label>
+            <div class="seller-working-hours-time-row seller-field--wide">
+                <label>Opening time<input type="time" name="opens_at" value="{{ $openingTime }}">@error('opens_at')<span class="seller-field-error">{{ $message }}</span>@enderror</label>
+                <span class="seller-working-hours-arrow">to</span>
+                <label>Closing time<input type="time" name="closes_at" value="{{ $closingTime }}">@error('closes_at')<span class="seller-field-error">{{ $message }}</span>@enderror</label>
+            </div>
             <label class="seller-checkbox"><input type="checkbox" name="manual_tracking_enabled" value="1" @checked(old('manual_tracking_enabled', $vendor->manual_tracking_enabled))> Enable manual tracking updates</label>
             <div class="seller-form-actions"><button type="submit">Save Shipping Details</button></div>
         </form>
     </section>
+    <script>
+        (() => {
+            const grid = document.querySelector('[data-working-hours-grid]');
+            if (!grid) return;
+
+            const refresh = (row) => {
+                const checkbox = row.querySelector('[data-working-day-toggle]');
+                const state = row.querySelector('[data-working-day-state]');
+                const hours = row.querySelector('[data-working-day-hours]');
+                const open = checkbox?.checked;
+                if (state) state.textContent = open ? 'Open' : 'Closed';
+                if (hours) {
+                    hours.textContent = open ? (grid.dataset.hoursLabel || 'Set opening and closing time') : 'Closed';
+                    hours.classList.toggle('is-closed', !open);
+                }
+            };
+
+            grid.querySelectorAll('[data-working-day]').forEach((row) => {
+                row.querySelector('[data-working-day-toggle]')?.addEventListener('change', () => refresh(row));
+                refresh(row);
+            });
+        })();
+    </script>
 </x-layouts.seller>

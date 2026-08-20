@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\ShippingLabel;
 use App\Models\ShippingLabelEvent;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Services\ShippingLabelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -160,6 +162,28 @@ class ShippingLabelManagementTest extends TestCase
         $this->actingAs($customer)->get(route('admin.shipping-labels.index'))->assertForbidden();
     }
 
+    public function test_label_branding_is_derived_from_seller_plan_and_blocks_escalation(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $service = app(ShippingLabelService::class);
+
+        $freeOrder = $this->placedOrderForPlan(Vendor::PLAN_FREE, 'Free Seller');
+        $growthOrder = $this->placedOrderForPlan(Vendor::PLAN_GROWTH, 'Growth Seller');
+        $enterpriseOrder = $this->placedOrderForPlan(Vendor::PLAN_ENTERPRISE, 'Enterprise Seller');
+
+        $freeLabel = $service->generate($freeOrder, $admin, ['brand_mode' => ShippingLabel::BRAND_SELLER]);
+        $growthLabel = $service->generate($growthOrder, $admin, ['brand_mode' => ShippingLabel::BRAND_SELLER]);
+        $enterpriseLabel = $service->generate($enterpriseOrder, $admin, ['brand_mode' => ShippingLabel::BRAND_SUSHAKO]);
+
+        $this->assertSame(ShippingLabel::BRAND_SUSHAKO, $freeLabel->brand_mode);
+        $this->assertSame('Sushako Branding', $freeLabel->metadata['branding_rule']);
+        $this->assertSame(ShippingLabel::BRAND_SUSHAKO, $growthLabel->brand_mode);
+        $this->assertSame('Sushako Labelling', $growthLabel->metadata['branding_rule']);
+        $this->assertSame(ShippingLabel::BRAND_SELLER, $enterpriseLabel->brand_mode);
+        $this->assertSame('Own Branding Label', $enterpriseLabel->metadata['branding_rule']);
+        $this->assertSame('Enterprise Seller', $enterpriseLabel->seller_name);
+    }
+
     private function placedOrder(array $overrides = []): Order
     {
         return Order::query()->create(array_merge([
@@ -182,5 +206,46 @@ class ShippingLabelManagementTest extends TestCase
             'payment_status' => 'paid',
             'placed_at' => now(),
         ], $overrides));
+    }
+
+    private function placedOrderForPlan(string $plan, string $sellerName): Order
+    {
+        $seller = User::factory()->create([
+            'role' => User::ROLE_SELLER,
+            'name' => $sellerName,
+            'email' => str($sellerName)->slug('.').'@example.test',
+        ]);
+        $vendor = Vendor::query()->create([
+            'user_id' => $seller->id,
+            'business_name' => $sellerName,
+            'store_display_name' => $sellerName,
+            'slug' => str($sellerName)->slug('-'),
+            'email' => $seller->email,
+            'phone' => '9123456789',
+            'status' => Vendor::STATUS_ACTIVE,
+            'onboarding_status' => 'complete',
+            'store_status' => Vendor::STORE_LIVE,
+            'store_visibility' => Vendor::VISIBILITY_PUBLISHED,
+            'current_plan' => $plan,
+            'plan_status' => Vendor::PLAN_ACTIVE,
+            'payment_status' => $plan === Vendor::PLAN_FREE ? Vendor::PAYMENT_NOT_REQUIRED : Vendor::PAYMENT_PAID,
+            'plan_expires_at' => $plan === Vendor::PLAN_FREE ? null : now()->addMonth(),
+            'pickup_address' => $sellerName.' Pickup',
+            'return_address' => $sellerName.' Returns',
+            'business_logo_path' => 'seller-logos/'.$plan.'.png',
+        ]);
+        $order = $this->placedOrder(['order_number' => 'SS'.now()->format('Ym').str_pad((string) $vendor->id, 5, '0', STR_PAD_LEFT)]);
+        $order->items()->create([
+            'vendor_id' => $vendor->id,
+            'product_name' => $sellerName.' Product',
+            'product_slug' => str($sellerName)->slug('-').'-product',
+            'colour' => 'Standard',
+            'size' => 'Standard',
+            'quantity' => 1,
+            'unit_price' => 100,
+            'line_total' => 100,
+        ]);
+
+        return $order->fresh('items.vendor');
     }
 }

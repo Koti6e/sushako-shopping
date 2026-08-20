@@ -4,6 +4,12 @@
     $currentPlan = $vendor->current_plan ?: $vendor->selected_plan_slug ?: $vendor->selected_plan ?: Vendor::PLAN_FREE;
     $pendingPlan = in_array($vendor->payment_status, [Vendor::PAYMENT_PENDING, Vendor::PAYMENT_FAILED], true) ? ($vendor->selected_plan_slug ?: $vendor->selected_plan) : null;
     $remainingDays = $vendor->plan_expires_at ? max(0, now()->startOfDay()->diffInDays($vendor->plan_expires_at->copy()->startOfDay(), false)) : null;
+    $brandingByPlan = [
+        Vendor::PLAN_FREE => ['label' => 'Sushako Branding', 'feature' => 'Sushako-branded labels', 'note' => 'Sushako platform branding remains visible on supported seller and customer commerce surfaces.'],
+        Vendor::PLAN_GROWTH => ['label' => 'Sushako Labelling', 'feature' => 'Sushako labelling', 'note' => 'Growth keeps Sushako platform labelling and does not include own-brand labels.'],
+        Vendor::PLAN_ENTERPRISE => ['label' => 'Own Branding Label', 'feature' => 'Own branding labels', 'note' => 'Enterprise can use the seller business branding on supported labels.'],
+    ];
+    $gatewayNotice = 'Payment gateway charges (Razorpay) apply separately to online transactions on all plans.';
 @endphp
 <x-layouts.seller title="Subscription">
     <x-seller.header title="Subscription" subtitle="Select a seller plan, manage renewals, and continue payment from one workspace." :vendor="$vendor" />
@@ -29,6 +35,7 @@
                 <span>Secure Payment</span>
                 <strong>Razorpay checkout</strong>
                 <p>Paid plans are created as pending payment orders and activated only after verified payment confirmation.</p>
+                <p>{{ $gatewayNotice }} Applicable gateway charges may also affect online refunds as disclosed during refund requests.</p>
             </aside>
         </section>
 
@@ -43,6 +50,7 @@
                     $productLimit = $plan['product_limit'] ?? 'Unlimited';
                     $orderLimit = $plan['order_limit'] ?? 'Unlimited';
                     $ctaText = $isPending ? 'Continue Payment' : ($isCurrent ? 'Renew Plan' : 'Select & Pay');
+                    $branding = $brandingByPlan[$slug] ?? $brandingByPlan[Vendor::PLAN_FREE];
                 @endphp
 
                 <article @class(['seller-plan-option-card', 'is-current' => $isCurrent, 'is-pending' => $isPending, 'is-featured' => $slug === Vendor::PLAN_GROWTH])>
@@ -61,15 +69,20 @@
                         <div><dt>Products</dt><dd>{{ is_numeric($productLimit) ? number_format((int) $productLimit) : $productLimit }}</dd></div>
                         <div><dt>Orders</dt><dd>{{ $orderLimit }}</dd></div>
                         <div><dt>Commission</dt><dd>{{ $plan['commission'] ?? 'Seller commission policy applies' }}</dd></div>
+                        <div><dt>Branding</dt><dd>{{ $branding['label'] }}</dd></div>
+                        <div><dt>Gateway charges</dt><dd>Razorpay applicable</dd></div>
                     </dl>
 
                     <ul>
+                        <li>{{ $branding['feature'] }}</li>
                         @foreach (array_slice($plan['features'] ?? [], 0, 6) as $feature)
                             <li>{{ $feature }}</li>
                         @endforeach
                     </ul>
 
                     <footer>
+                        <p class="seller-plan-branding-note">{{ $branding['note'] }}</p>
+                        <p class="seller-plan-gateway-note">{{ $gatewayNotice }}</p>
                         @if ($isPaid)
                             <form method="POST" action="{{ route('seller.plans.renew') }}">
                                 @csrf

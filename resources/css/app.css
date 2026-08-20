@@ -2812,6 +2812,28 @@ body.seller-body--elite .seller-nav button:hover,
     }
 }
 
+@media (max-width: 760px) {
+    .seller-working-hours-day {
+        grid-template-columns: minmax(92px, 1fr) auto;
+        gap: 8px 10px;
+    }
+
+    .seller-working-hours-day__hours {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    .seller-working-hours-time-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .seller-working-hours-arrow {
+        min-height: 20px;
+        justify-items: start;
+    }
+}
+
 /* Seller onboarding completion flow. */
 .seller-login-form,
 .seller-form-card--elite {
@@ -14534,26 +14556,78 @@ body.admin-sidebar-open {
     text-align: center;
 }
 
+.seller-working-hours-panel {
+    min-width: 0;
+}
+
+.seller-working-hours-panel p {
+    margin: 0 0 12px;
+    color: rgba(20, 33, 61, 0.66);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
 .seller-working-hours-day {
     display: grid;
-    grid-template-columns: minmax(116px, 0.8fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(112px, 0.8fr) minmax(112px, auto) minmax(160px, 1fr);
     gap: 12px;
     align-items: center;
+    min-width: 0;
+    min-height: 52px;
+    padding: 10px 12px;
 }
 
 .seller-working-hours-day__toggle {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-width: 88px;
+    min-width: 0;
+    width: fit-content;
     color: #14213d;
     font-weight: 900;
+    white-space: nowrap;
+}
+
+.seller-working-hours-day__hours {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 999px;
+    padding: 7px 11px;
+    background: rgba(30, 127, 79, 0.1);
+    color: #1e7f4f;
+    font-size: 0.82rem;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.seller-working-hours-day__hours.is-closed {
+    background: rgba(20, 33, 61, 0.08);
+    color: rgba(20, 33, 61, 0.62);
 }
 
 .seller-working-hours-time-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 12px;
+    align-items: end;
+}
+
+.seller-working-hours-time-row label {
+    min-width: 0;
+}
+
+.seller-working-hours-arrow {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    color: rgba(20, 33, 61, 0.56);
+    font-size: 0.78rem;
+    font-weight: 950;
+    text-transform: uppercase;
 }
 
 .seller-form-field {
@@ -20979,6 +21053,48 @@ body.seller-body--elite .seller-plan-option-card footer {
     display: grid;
     align-self: end;
     gap: 10px;
+}
+
+body.seller-body--elite .seller-plan-branding-note,
+body.seller-body--elite .seller-plan-gateway-note {
+    margin: 0;
+    border-radius: 8px;
+    padding: 10px 11px;
+    font-size: 0.78rem;
+    font-weight: 850;
+    line-height: 1.38;
+}
+
+body.seller-body--elite .seller-plan-branding-note {
+    background: rgba(23, 90, 122, 0.08);
+    color: #175a7a;
+}
+
+body.seller-body--elite .seller-plan-gateway-note {
+    background: rgba(197, 154, 61, 0.11);
+    color: #7a5616;
+}
+
+.product-detail-seller-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 0;
+    color: rgba(20, 33, 61, 0.66);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.product-detail-seller-line a {
+    color: #175a7a;
+    font-weight: 950;
+    text-decoration: none;
+}
+
+.product-detail-seller-line span {
+    border-left: 1px solid rgba(20, 33, 61, 0.18);
+    padding-left: 8px;
 }
 
 body.seller-body--elite .seller-plan-option-card form {

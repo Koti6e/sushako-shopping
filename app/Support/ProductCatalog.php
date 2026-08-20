@@ -383,7 +383,7 @@ class ProductCatalog
                 ->where('store_status', Vendor::STORE_LIVE)
                 ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
             ->where(function (Builder $query): void {
-                foreach (['staging', 'test', 'sample'] as $blocked) {
+                foreach (['staging', 'sample', 'razorpay-test'] as $blocked) {
                     $query
                         ->where('name', 'not like', '%'.$blocked.'%')
                         ->where('slug', 'not like', '%'.$blocked.'%')

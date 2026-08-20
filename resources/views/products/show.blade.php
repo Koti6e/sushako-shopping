@@ -54,6 +54,14 @@
                 <p class="eyebrow">{{ $product['collection'] }}</p>
                 <h1>{{ $product['name'] }}</h1>
                 <p class="lede">{{ $product['short_description'] }}</p>
+                @if ($product['seller_slug'])
+                    <p class="product-detail-seller-line">
+                        Sold by <a href="{{ route('stores.show', $product['seller_slug']) }}">{{ $product['seller_name'] }}</a>
+                        @if ($product['seller_city'])
+                            <span>{{ $product['seller_city'] }}</span>
+                        @endif
+                    </p>
+                @endif
                 <div class="product-meta-row">
                     <span>{{ $product['badge'] }}</span>
                     @if ($product['seller_official'])

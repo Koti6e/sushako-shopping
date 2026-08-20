@@ -381,6 +381,12 @@ class SellerOsV2E2eQaTest extends TestCase
             'manual_tracking_enabled' => '1',
         ])->assertRedirect();
         $this->assertSame(['mon', 'tue', 'wed', 'thu', 'fri'], $vendor->fresh()->working_days);
+        $this->get(route('seller.shipping.index'))
+            ->assertOk()
+            ->assertSee('Monday')
+            ->assertSee('Closed')
+            ->assertSee('09:00 AM -&gt; 06:00 PM', false)
+            ->assertSee('Save Shipping Details');
         $this->put(route('seller.shipping.update'), [
             'address_line_1' => 'No. 10, GST Road',
             'city' => 'Chengalpattu',
@@ -391,7 +397,14 @@ class SellerOsV2E2eQaTest extends TestCase
             'shipping_commitment' => 'ships_within_1_business_day',
         ])->assertSessionHasErrors('postal_code');
 
-        $this->get(route('seller.plans.index'))->assertOk()->assertSee('Current Free Plan')->assertSee('Razorpay checkout');
+        $this->get(route('seller.plans.index'))
+            ->assertOk()
+            ->assertSee('Current Free Plan')
+            ->assertSee('Razorpay checkout')
+            ->assertSee('Payment gateway charges (Razorpay) apply separately to online transactions on all plans.')
+            ->assertSee('Sushako Branding')
+            ->assertSee('Sushako Labelling')
+            ->assertSee('Own Branding Label');
         $this->post(route('seller.plans.renew'), ['plan' => Vendor::PLAN_FREE])->assertRedirect();
         $this->assertSame(Vendor::PLAN_FREE, $vendor->fresh()->current_plan);
 

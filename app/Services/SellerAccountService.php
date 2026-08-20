@@ -60,7 +60,7 @@ class SellerAccountService
                 'is_paid' => false,
                 'validity_days' => null,
                 'grace_days' => 0,
-                'features' => ['Unlimited time', 'Rs 1 commission on every product unit sold', 'Self shipping', 'Draft to published workflow', 'Professional dashboard'],
+                'features' => ['Sushako-branded labels', 'Unlimited time', 'Rs 1 commission on every product unit sold', 'Self shipping', 'Draft to published workflow', 'Professional dashboard'],
                 'supporting_text' => 'Start free for unlimited time with a simple Rs 1 unit commission.',
             ],
             Vendor::PLAN_GROWTH => [
@@ -80,7 +80,7 @@ class SellerAccountService
                 'is_paid' => true,
                 'validity_days' => 30,
                 'grace_days' => 0,
-                'features' => ['Up to 100 products', 'Unlimited orders', 'Zero commission on orders', 'Advanced seller dashboard', 'Professional storefront', 'Sales and order reports', 'Marketing tools', 'Seller labelling features available as an add-on', 'Priority support', 'One-month plan validity'],
+                'features' => ['Sushako labelling', 'Up to 100 products', 'Unlimited orders', 'Zero commission on orders', 'Advanced seller dashboard', 'Professional storefront', 'Sales and order reports', 'Marketing tools', 'Priority support', 'One-month plan validity'],
                 'supporting_text' => 'Built for growing sellers who want predictable monthly pricing and no commission on orders.',
             ],
             Vendor::PLAN_ENTERPRISE => [
@@ -100,7 +100,7 @@ class SellerAccountService
                 'is_paid' => true,
                 'validity_days' => 30,
                 'grace_days' => 5,
-                'features' => ['Unlimited products', 'Unlimited orders', 'Zero commission', 'Complete storefront branding', 'Advanced analytics', 'Premium reports', 'Marketing tools', 'Seller labelling included', 'Priority support', 'Settlement insights', 'Five-day renewal grace period', 'One-month plan validity'],
+                'features' => ['Own branding labels', 'Unlimited products', 'Unlimited orders', 'Zero commission', 'Complete storefront branding', 'Advanced analytics', 'Premium reports', 'Marketing tools', 'Priority support', 'Settlement insights', 'Five-day renewal grace period', 'One-month plan validity'],
                 'supporting_text' => 'A complete premium selling suite for established businesses that need scale, branding, and operational control.',
             ],
         ];
