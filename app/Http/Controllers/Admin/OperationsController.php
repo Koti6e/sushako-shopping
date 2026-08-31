@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\TaxSlab;
 use App\Models\User;
@@ -21,7 +22,26 @@ class OperationsController extends Controller
     public function createCategory(): View
     {
         return view('admin.operations.category-create', [
-            'taxSlabs' => TaxSlab::query()->where('is_active', true)->orderBy('rate')->get(),
+            'categories' => Category::query()
+                ->whereNull('parent_id')
+                ->with([
+                    'children' => fn ($query) => $query
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->with([
+                            'children' => fn ($query) => $query
+                                ->orderBy('sort_order')
+                                ->orderBy('name'),
+                        ]),
+                ])
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(),
+
+            'taxSlabs' => TaxSlab::query()
+                ->where('is_active', true)
+                ->orderBy('rate')
+                ->get(),
         ]);
     }
 
@@ -29,7 +49,10 @@ class OperationsController extends Controller
     {
         return view('admin.operations.product-create', [
             'categories' => ProductCatalog::categories(),
-            'taxSlabs' => TaxSlab::query()->where('is_active', true)->orderBy('rate')->get(),
+            'taxSlabs' => TaxSlab::query()
+                ->where('is_active', true)
+                ->orderBy('rate')
+                ->get(),
         ]);
     }
 

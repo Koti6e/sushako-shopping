@@ -7,9 +7,34 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'tagline', 'headline', 'description', 'image', 'accent', 'tax_slab_id', 'is_active', 'available_to_sellers', 'sort_order'])]
+#[Fillable([
+    'parent_id',
+    'name',
+    'slug',
+    'tagline',
+    'headline',
+    'description',
+    'image',
+    'accent',
+    'tax_slab_id',
+    'is_active',
+    'available_to_sellers',
+    'sort_order',
+])]
 class Category extends Model
 {
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
     public function taxSlab(): BelongsTo
     {
         return $this->belongsTo(TaxSlab::class);
