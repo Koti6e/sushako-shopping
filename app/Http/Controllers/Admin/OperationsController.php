@@ -15,7 +15,26 @@ class OperationsController extends Controller
     public function categories(): View
     {
         return view('admin.operations.categories', [
-            'categories' => ProductCatalog::categories(),
+            'categories' => Category::query()
+                ->whereNull('parent_id')
+                ->with([
+                    'children' => fn ($query) => $query
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->with([
+                            'children' => fn ($query) => $query
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
+                                ->with([
+                                    'children' => fn ($query) => $query
+                                        ->orderBy('sort_order')
+                                        ->orderBy('name'),
+                                ]),
+                        ]),
+                ])
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -31,7 +50,12 @@ class OperationsController extends Controller
                         ->with([
                             'children' => fn ($query) => $query
                                 ->orderBy('sort_order')
-                                ->orderBy('name'),
+                                ->orderBy('name')
+                                ->with([
+                                    'children' => fn ($query) => $query
+                                        ->orderBy('sort_order')
+                                        ->orderBy('name'),
+                                ]),
                         ]),
                 ])
                 ->orderBy('sort_order')
