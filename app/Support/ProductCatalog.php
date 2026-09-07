@@ -39,8 +39,14 @@ class ProductCatalog
         }
 
         return self::$categoriesCache = Category::query()
+            ->whereNull('parent_id')
             ->where('is_active', true)
-            ->with(['products' => fn ($query) => $query->where('is_published', true)])
+            ->with([
+                'products' => fn ($query) => $query->where('is_published', true),
+                'children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name')->with([
+                    'children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name'),
+                ]),
+            ])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -71,6 +77,55 @@ class ProductCatalog
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Product $product): array => self::productArray($product));
+    }
+
+    /**
+     * The single query contract for products that may be shown to customers.
+     *
+     * Callers that need a paginated or filtered listing should build on this
+     * query instead of loading the complete catalog and filtering it in PHP.
+     */
+    public static function marketplaceQuery(): Builder
+    {
+        return self::productQuery()->withoutEagerLoads();
+    }
+
+    /**
+     * A small, deterministic marketplace-wide feed. Products are ordered in
+     * rounds (one per seller before a seller's second product) so an early
+     * seller or a seller with a large catalog cannot dominate discovery.
+     */
+    public static function marketplaceFeed(int $limit = 12): Collection
+    {
+        return self::sellerDiverseQuery(self::marketplaceQuery())
+            ->limit($limit)
+            ->get()
+            ->map(fn (Product $product): array => self::productArray($product));
+    }
+
+    /**
+     * Wrap an eligible-product query in a seller-round-robin ordering.
+     * MySQL 8 and the SQLite version supported by Laravel both implement
+     * ROW_NUMBER, while the rotating seller tie-break keeps the first seller
+     * from being the same database record every day.
+     */
+    public static function sellerDiverseQuery(Builder $query, ?string $withinSellerOrder = null): Builder
+    {
+        $withinSellerOrder ??= 'products.is_best_seller desc, products.is_new desc, products.created_at desc, products.id desc';
+
+        $ranked = $query
+            ->reorder()
+            ->select('products.*')
+            ->selectRaw("ROW_NUMBER() OVER (PARTITION BY products.vendor_id ORDER BY {$withinSellerOrder}) as seller_rank");
+
+        return Product::query()
+            ->fromSub($ranked, 'marketplace_feed')
+            ->select('marketplace_feed.*')
+            ->with(['category.parent.parent.parent', 'images', 'variants', 'vendor'])
+            ->orderBy('seller_rank')
+            ->orderByRaw('MOD(vendor_id + ?, 997)', [now()->dayOfYear])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     public static function featuredProduct(): ?array
@@ -124,8 +179,14 @@ class ProductCatalog
 
     public static function productsForDepartment(string $slug): Collection
     {
+        $category = Category::query()->where('slug', $slug)->where('is_active', true)->with('children.children')->first();
+
+        if (! $category) {
+            return collect();
+        }
+
         return self::productQuery()
-            ->whereHas('category', fn (Builder $query) => $query->where('slug', $slug))
+            ->whereIn('category_id', self::descendantCategories($category)->prepend($category)->pluck('id'))
             ->orderBy('sort_order')
             ->orderByDesc('created_at')
             ->get()
@@ -197,7 +258,7 @@ class ProductCatalog
 
     public static function productArray(Product $product): array
     {
-        $product->loadMissing(['category', 'images', 'variants', 'vendor']);
+        $product->loadMissing(['category.parent.parent.parent', 'images', 'variants', 'vendor']);
 
         $variants = $product->variants->sortBy(fn (ProductVariant $variant): string => $variant->colour.'|'.$variant->size)->values();
         $variantOptionName = $variants->pluck('option_name')->filter()->first();
@@ -230,13 +291,8 @@ class ProductCatalog
             'path' => $image->url(),
         ])->values()->all();
 
-        if (! $images) {
-            $images = [[
-                'id' => null,
-                'label' => 'Product Image',
-                'path' => self::imageUrl($product->category->image ?: 'assets/banners/home-made-health-mix.jpg'),
-            ]];
-        }
+        $categoryPath = self::categoryPath($product->category);
+        $department = $categoryPath->first() ?: $product->category;
 
         $stock = (int) $variants->sum('stock');
         $scheduled = $product->seller_status === Product::SELLER_STATUS_SCHEDULED && $product->scheduled_go_live_at?->isFuture();
@@ -263,10 +319,11 @@ class ProductCatalog
             'name' => $product->name,
             'slug' => $product->slug,
             'collection' => $product->collection,
-            'department' => $product->category->name,
-            'department_slug' => $product->category->slug,
+            'department' => $department->name,
+            'department_slug' => $department->slug,
             'category' => $product->category->name,
             'category_slug' => $product->category->slug,
+            'category_path_slugs' => $categoryPath->pluck('slug')->all(),
             'subcategory' => $product->subcategory ?: $product->category->name,
             'brand' => $product->brand,
             'seller_name' => $product->vendor?->store_display_name ?: $product->vendor?->business_name ?: 'Sushako Store',
@@ -343,8 +400,12 @@ class ProductCatalog
 
     private static function categoryArray(Category $category): array
     {
-        $category->loadMissing(['products' => fn ($query) => $query->where('is_published', true)]);
-        $subcategories = $category->products->pluck('subcategory')->filter()->unique()->values()->all();
+        $category->loadMissing(['products' => fn ($query) => $query->where('is_published', true), 'children.children']);
+        $subcategories = self::descendantCategories($category)->pluck('name')->values()->all();
+
+        if (! $subcategories) {
+            $subcategories = $category->products->pluck('subcategory')->filter()->unique()->values()->all();
+        }
 
         if (! $subcategories) {
             $subcategories = [$category->name];
@@ -357,7 +418,7 @@ class ProductCatalog
             'tagline' => $category->tagline ?: 'Sushako category',
             'headline' => $category->headline ?: $category->name,
             'description' => $category->description ?: 'Curated Sushako products with trusted shopping and reliable support.',
-            'image' => $category->image ? self::imageUrl($category->image) : asset('assets/banners/home-made-health-mix.jpg'),
+            'image' => $category->image ? self::imageUrl($category->image) : null,
             'accent' => $category->accent ?: '#2f6b4f',
             'brands' => $category->products->pluck('brand')->filter()->unique()->values()->all() ?: ['Sushako'],
             'offers' => ['Secure shopping', 'Invoice after order', 'WhatsApp support'],
@@ -375,10 +436,28 @@ class ProductCatalog
     private static function productQuery(): Builder
     {
         return Product::query()
-            ->with(['category', 'images', 'variants', 'vendor'])
+            ->with(['category.parent.parent.parent', 'images', 'variants', 'vendor'])
             ->where('is_published', true)
             ->whereIn('seller_status', [Product::SELLER_STATUS_APPROVED, Product::SELLER_STATUS_ACTIVE, Product::SELLER_STATUS_SCHEDULED])
-            ->whereHas('category', fn (Builder $query) => $query->where('is_active', true))
+            ->whereHas('category', function (Builder $query): void {
+                $query
+                    ->where('is_active', true)
+                    ->where(function (Builder $query): void {
+                        $query->whereNull('parent_id')->orWhereHas('parent', function (Builder $parent): void {
+                            $parent
+                                ->where('is_active', true)
+                                ->where(function (Builder $parent): void {
+                                    $parent->whereNull('parent_id')->orWhereHas('parent', function (Builder $grandparent): void {
+                                        $grandparent
+                                            ->where('is_active', true)
+                                            ->where(function (Builder $grandparent): void {
+                                                $grandparent->whereNull('parent_id')->orWhereHas('parent', fn (Builder $root) => $root->where('is_active', true));
+                                            });
+                                    });
+                                });
+                        });
+                    });
+            })
             ->whereHas('vendor', fn (Builder $query) => $query
                 ->where('store_status', Vendor::STORE_LIVE)
                 ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
@@ -393,6 +472,28 @@ class ProductCatalog
                 }
             })
             ->whereHas('variants');
+    }
+
+    private static function categoryPath(Category $category): Collection
+    {
+        $path = collect([$category]);
+        $parent = $category->parent;
+
+        while ($parent) {
+            $path->prepend($parent);
+            $parent = $parent->parent;
+        }
+
+        return $path;
+    }
+
+    private static function descendantCategories(Category $category): Collection
+    {
+        $children = $category->children ?? collect();
+
+        return $children->flatMap(function (Category $child): array {
+            return [$child, ...self::descendantCategories($child)->all()];
+        })->values();
     }
 
     private static function colourHex(string $colour): string

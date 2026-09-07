@@ -60,7 +60,7 @@
                     <div class="admin-image-grid">
                         @foreach ($product['images'] as $image)
                             <figure>
-                                <img src="{{ $image['path'] }}" alt="{{ $product['name'] }} {{ $image['label'] }}" loading="lazy">
+                                <x-product.image :src="$image['path']" :alt="$product['name'].' '.$image['label']" />
                                 <figcaption>{{ $image['label'] }}</figcaption>
                                 @if ($image['id'])
                                     <button

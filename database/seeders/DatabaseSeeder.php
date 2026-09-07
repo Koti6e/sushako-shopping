@@ -38,6 +38,10 @@ class DatabaseSeeder extends Seeder
         $this->seedUser(env('SUSHAKO_CUSTOMER_EMAIL', 'customer@sushako.test'), 'Sushako Customer', '9000000002', User::ROLE_CUSTOMER, $password);
         app(OfficialStoreService::class)->ensure(User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('status', User::STATUS_ACTIVE)->first());
         $this->seedCatalog();
+        $this->call([
+            MarketplaceCategorySeeder::class,
+            MarketplaceContentSeeder::class,
+        ]);
     }
 
     private function seedSellerPlans(): void

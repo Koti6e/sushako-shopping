@@ -38,10 +38,21 @@
 
                     <label class="seller-product-field">
                         <span>Category <b>*</b></span>
-                        <select name="category_id" required>
+                        <select name="category_id" required data-marketplace-category>
                             <option value="">Select category</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}" @selected((int) old('category_id', $product->category_id) === $category->id)>{{ $category->name }}</option>
+                            @foreach ($categoryTree as $root)
+                                @if ($root->children->isEmpty())
+                                    <option value="{{ $root->id }}" @selected((int) old('category_id', $product->category_id) === $root->id)>{{ $root->name }}</option>
+                                @else
+                                    <optgroup label="{{ $root->name }}">
+                                        @foreach ($root->children as $child)
+                                            <option value="{{ $child->id }}" @selected((int) old('category_id', $product->category_id) === $child->id)>{{ $child->name }}</option>
+                                            @foreach ($child->children as $grandchild)
+                                                <option value="{{ $grandchild->id }}" @selected((int) old('category_id', $product->category_id) === $grandchild->id)>&nbsp;&nbsp;{{ $grandchild->name }}</option>
+                                            @endforeach
+                                        @endforeach
+                                    </optgroup>
+                                @endif
                             @endforeach
                         </select>
                         @error('category_id')<small class="seller-field-error">{{ $message }}</small>@enderror
@@ -184,7 +195,7 @@
                         <div class="seller-product-upload__existing" aria-label="Current product images">
                             @foreach ($product->images as $image)
                                 <figure>
-                                    <img src="{{ asset(str_starts_with($image->path, 'assets/') ? $image->path : 'storage/'.$image->path) }}" alt="{{ $image->label ?: $product->name }}" loading="lazy">
+                                    <x-product.image :src="$image->url()" :alt="$image->label ?: $product->name" />
                                     <figcaption>{{ $loop->first ? 'Current main image' : 'Product image' }}</figcaption>
                                 </figure>
                             @endforeach
@@ -211,7 +222,9 @@
             <form method="POST" action="{{ route('seller.category-requests.store') }}">
                 @csrf
                 <input name="requested_category_name" placeholder="Requested category name" required maxlength="120">
-                <textarea name="description" placeholder="Example products or notes" maxlength="1000"></textarea>
+                <select name="suggested_parent_id"><option value="">Suggested parent category (optional)</option>@foreach($categoryTree as $root)<option value="{{ $root->id }}">{{ $root->name }}</option>@endforeach</select>
+                <textarea name="example_products" placeholder="Example products" maxlength="1000"></textarea>
+                <textarea name="description" placeholder="Why this category is needed" maxlength="1000"></textarea>
                 <button type="submit">Request New Category</button>
             </form>
         </aside>

@@ -29,21 +29,22 @@ class AdminControlCenterService
                 [
                     'label' => 'Marketplace',
                     'icon' => 'fa-store',
-                    'active' => ['admin.sellers.*', 'admin.category-requests.*'],
+                    'active' => ['admin.sellers.*'],
                     'children' => [
                         $this->child('Approval Center', 'admin.approvals.index', ['admin.approvals.*'], $counts['approvals']),
                         $this->child('Seller Management', 'admin.sellers.index', ['admin.sellers.*'], $counts['sellers']),
-                        $this->child('Category Requests', 'admin.category-requests.index', ['admin.category-requests.*'], $counts['category_requests']),
                         $this->child('Official Store', 'admin.products.index', ['admin.products.*'], null, ['store' => 'official']),
                     ],
                 ],
                 [
-                    'label' => 'Product Management',
+                    'label' => 'Catalog',
                     'icon' => 'fa-boxes-stacked',
-                    'active' => ['admin.products.*', 'admin.categories.*', 'admin.inventory.*'],
+                    'active' => ['admin.products.*', 'admin.categories.*', 'admin.category-requests.*', 'admin.inventory.*', 'admin.content.collections.*'],
                     'children' => [
                         $this->child('Products', 'admin.products.index', ['admin.products.*'], $counts['products']),
                         $this->child('Categories', 'admin.categories.index', ['admin.categories.*'], $counts['categories']),
+                        $this->child('Category Requests', 'admin.category-requests.index', ['admin.category-requests.*'], $counts['category_requests']),
+                        $this->child('Collections', 'admin.content.collections.index', ['admin.content.collections.*']),
                         $this->child('Inventory', 'admin.inventory.index', ['admin.inventory.*'], $counts['stock_alerts']),
                     ],
                 ],
@@ -82,9 +83,11 @@ class AdminControlCenterService
                 [
                     'label' => 'Marketing',
                     'icon' => 'fa-bullhorn',
-                    'active' => ['admin.sellers.banners.*', 'admin.customers.whatsapp.*'],
+                    'active' => ['admin.content.*', 'admin.customers.whatsapp.*'],
                     'children' => [
-                        $this->child('Store Banners', 'admin.sellers.banners.index', ['admin.sellers.banners.*']),
+                        $this->child('Content Creator', 'admin.content.index', ['admin.content.index', 'admin.content.create', 'admin.content.edit']),
+                        $this->child('Campaigns', 'admin.content.index', ['admin.content.*'], null, ['type' => 'campaign']),
+                        $this->child('Promotions', 'admin.content.index', ['admin.content.*'], null, ['type' => 'promotional_banner']),
                         $this->child('WhatsApp Campaigns', 'admin.customers.whatsapp.index', ['admin.customers.whatsapp.*']),
                     ],
                 ],
@@ -94,7 +97,6 @@ class AdminControlCenterService
                     'active' => ['admin.customers.exports'],
                     'children' => [
                         $this->child('Customer Exports', 'admin.customers.exports', ['admin.customers.exports']),
-                        $this->placeholder('Sales Reports', 'admin.settings.placeholder', ['section' => 'reports']),
                     ],
                 ],
                 [
@@ -110,22 +112,11 @@ class AdminControlCenterService
                     ],
                 ],
                 [
-                    'label' => 'System',
-                    'icon' => 'fa-server',
-                    'active' => ['admin.settings.placeholder'],
-                    'children' => [
-                        $this->placeholder('Policies', 'admin.settings.placeholder', ['section' => 'policies']),
-                        $this->placeholder('Notifications', 'admin.settings.placeholder', ['section' => 'notifications']),
-                        $this->child('Storefront', 'home', [], null, [], true),
-                    ],
-                ],
-                [
                     'label' => 'Support',
                     'icon' => 'fa-headset',
                     'active' => ['admin.customers.communications.*'],
                     'children' => [
                         $this->child('Customer Issues', 'admin.customers.communications.index', ['admin.customers.communications.*'], $counts['customer_issues']),
-                        $this->placeholder('Help Desk', 'admin.settings.placeholder', ['section' => 'support']),
                     ],
                 ],
             ],

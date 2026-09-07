@@ -36,11 +36,7 @@
                         @php $image = $product->images->first(); @endphp
                         <a class="seller-product-row seller-product-row--rich" href="{{ route('seller.products.edit', $product) }}">
                             <span class="seller-product-thumb">
-                                @if ($image)
-                                    <img src="{{ asset(str_starts_with($image->path, 'assets/') ? $image->path : 'storage/'.$image->path) }}" alt="{{ $product->name }}" loading="lazy">
-                                @else
-                                    <i class="fa-solid fa-box" aria-hidden="true"></i>
-                                @endif
+                                <x-product.image :src="$image?->url()" :alt="$product->name" fallback-class="seller-product-no-preview" />
                             </span>
                             <strong>{{ $product->name }}</strong>
                             <span>Rs {{ number_format($product->selling_price) }}</span>

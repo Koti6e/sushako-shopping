@@ -35,12 +35,12 @@ class SellerOnboardingFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Business Details')
             ->assertSee('Yes, I have GST')
-            ->assertSee('No GST')
-            ->assertSee('Pickup address is same as business address')
+            ->assertSee("No, I don't have GST", false)
+            ->assertSee('Same as Business Address')
             ->assertSee('Delivery Setup')
             ->assertSee('Delivery Radius')
             ->assertSee('Return Policy')
-            ->assertSee("Let's Go to My Shop", false)
+            ->assertSee('Complete Setup & Create My Shop', false)
             ->assertDontSee('Choose Plan')
             ->assertDontSee('Quick Action')
             ->assertDontSee('seller-mobile-bottom-nav');
@@ -112,7 +112,7 @@ class SellerOnboardingFlowTest extends TestCase
 
         $this->actingAs($seller)->get(route('seller.onboarding', ['step' => 3]))
             ->assertOk()
-            ->assertSee('Your shop is almost ready.')
+            ->assertSee('Set up your shop')
             ->assertDontSee('seller-plan-card-production');
     }
 

@@ -34,9 +34,9 @@ SVG;
     data-best-selling="{{ $product['is_best_seller'] ? '1' : '0' }}"
 >
     <a href="{{ route('products.show', $product['slug']) }}" class="product-card__image">
-        <img src="{{ $product['images'][0]['path'] }}" alt="{{ $product['name'] }} front view" loading="lazy">
+        <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name'].' front view'" />
         @if (isset($product['images'][1]))
-            <img class="product-card__image-alt" src="{{ $product['images'][1]['path'] }}" alt="{{ $product['name'] }} alternate view" loading="lazy">
+            <x-product.image class="product-card__image-alt" :src="$product['images'][1]['path']" :alt="$product['name'].' alternate view'" />
         @endif
         @if (filled($displayBadge))
             <span>{{ $displayBadge }}</span>

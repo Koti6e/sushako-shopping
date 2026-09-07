@@ -18,7 +18,7 @@
     }
 
     $departments = collect(\App\Support\ProductCatalog::departments());
-    $storeProducts = collect(\App\Support\ProductCatalog::products());
+    $storeProducts = \App\Support\ProductCatalog::marketplaceFeed(5);
     $navigationDepartments = $departments;
     $cartCount = collect(session('cart', []))->sum('quantity');
     $wishlistCount = count(session('wishlist', []));
@@ -149,13 +149,6 @@
             <img class="page-loader__logo" src="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" alt="Sushako Shopping" width="760" height="220" decoding="async">
             <span></span>
         </div>
-    </div>
-    <div class="announcement-bar" aria-label="Store announcements">
-        <span>Same Day Dispatch Before 2 PM</span>
-        <span>Free Shipping Above &#8377;999</span>
-        <span>Secure Payments Powered by Razorpay</span>
-        <span>Easy Returns</span>
-        <span>Sushako Store Support</span>
     </div>
     <header class="site-header" data-surface="customer-header">
         <div class="site-shell site-header__inner">
@@ -395,7 +388,7 @@
         <div class="site-shell store-footer">
             <section class="footer-brand-column">
                 <x-brand.logo context="large" loading="lazy" />
-                <p>Premium own-store ecommerce for curated products across India.</p>
+                <p>A multi-seller marketplace for products from active Sushako stores.</p>
                 <div class="footer-socials" aria-label="Social links">
                     <a href="#facebook" aria-label="Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
                     <a href="#instagram" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
@@ -405,10 +398,11 @@
             </section>
             <nav aria-label="Store department footer links">
                 <h2><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i> Departments</h2>
-                @foreach ($departments as $department)
+                @foreach ($departments->take(6) as $department)
                     <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
                 @endforeach
-                <a href="{{ route('shop') }}?category=New+Arrivals">New Arrivals</a>
+                <a href="{{ route('shop') }}?shop=new">New Arrivals</a>
+                <a href="{{ route('shop') }}">View All Categories</a>
             </nav>
             <nav aria-label="Customer footer links">
                 <h2><i class="fa-regular fa-user" aria-hidden="true"></i> Customer</h2>

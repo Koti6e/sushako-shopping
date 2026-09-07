@@ -6,7 +6,7 @@
                 <div class="admin-table">
                     @foreach ($products as $product)
                         <article>
-                            <img src="{{ $product['images'][0]['path'] }}" alt="{{ $product['name'] }}" loading="lazy">
+                            <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name']" />
                             <div>
                                 <h2>{{ $product['name'] }}</h2>
                                 <p>{{ $product['stock_label'] }} · {{ count($product['variants']) }} variants</p>

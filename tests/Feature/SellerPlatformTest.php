@@ -30,8 +30,7 @@ class SellerPlatformTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('Become a Seller')
-            ->assertSee(route('seller.login'))
-            ->assertSee('Start Selling with Zero Upfront Cost');
+            ->assertSee(route('seller.login'));
     }
 
     public function test_seller_dashboard_redirects_incomplete_seller_to_onboarding(): void

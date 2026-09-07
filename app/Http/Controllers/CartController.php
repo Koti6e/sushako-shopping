@@ -88,7 +88,7 @@ class CartController extends Controller
             'size' => $data['size'],
             'quantity' => $data['quantity'],
             'price' => (int) ($variant->price ?: $product['selling_price']),
-            'image' => $product['images'][0]['path'],
+            'image' => $product['images'][0]['path'] ?? null,
         ];
 
         session(['cart' => $cart]);

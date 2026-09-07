@@ -9,6 +9,7 @@ use App\Models\SellerPlan;
 use App\Models\SellerPlanPayment;
 use App\Models\User;
 use App\Models\Vendor;
+use Database\Seeders\MarketplaceCategorySeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -486,6 +487,31 @@ class SellerAccountService
         return Category::query()->where('is_active', true)->where('available_to_sellers', true)->orderBy('name')->get()->all();
     }
 
+    public function sellerCategoryTree(): array
+    {
+        $this->ensureDefaultCategories();
+
+        return Category::query()
+            ->whereNull('parent_id')
+            ->where('is_active', true)
+            ->where('available_to_sellers', true)
+            ->with(['children' => fn ($query) => $query
+                ->where('is_active', true)
+                ->where('available_to_sellers', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->with(['children' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where('available_to_sellers', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')]),
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->all();
+    }
+
     public function audit(Vendor $vendor, string $action, ?string $reason = null, array $metadata = []): void
     {
         SellerAuditLog::query()->create([
@@ -563,27 +589,8 @@ class SellerAccountService
             return;
         }
 
-        $defaultCategories = [
-            [
-                'name' => 'General',
-                'slug' => 'general',
-                'description' => 'Default category for starter seller onboarding.',
-                'is_active' => true,
-                'available_to_sellers' => true,
-                'sort_order' => 1,
-            ],
-            [
-                'name' => 'Fashion',
-                'slug' => 'fashion',
-                'description' => 'Fashion and accessories for marketplace sellers.',
-                'is_active' => true,
-                'available_to_sellers' => true,
-                'sort_order' => 2,
-            ],
-        ];
-
-        foreach ($defaultCategories as $category) {
-            Category::query()->updateOrCreate(['slug' => $category['slug']], $category);
+        if (! Category::query()->exists()) {
+            app(MarketplaceCategorySeeder::class)->run();
         }
     }
 

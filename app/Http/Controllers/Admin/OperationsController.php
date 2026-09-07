@@ -21,17 +21,21 @@ class OperationsController extends Controller
                     'children' => fn ($query) => $query
                         ->orderBy('sort_order')
                         ->orderBy('name')
+                        ->withCount('products')
                         ->with([
                             'children' => fn ($query) => $query
                                 ->orderBy('sort_order')
                                 ->orderBy('name')
+                                ->withCount('products')
                                 ->with([
                                     'children' => fn ($query) => $query
                                         ->orderBy('sort_order')
-                                        ->orderBy('name'),
+                                        ->orderBy('name')
+                                        ->withCount('products'),
                                 ]),
                         ]),
                 ])
+                ->withCount('products')
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(),

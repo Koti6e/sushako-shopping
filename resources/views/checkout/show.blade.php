@@ -214,7 +214,7 @@
                 <div class="checkout-product-list">
                     @foreach ($cart as $key => $item)
                         <article class="checkout-product-card" data-checkout-item data-cart-key="{{ $key }}">
-                            <img src="{{ $item['image'] }}" alt="{{ $item['product'] }}" loading="lazy">
+                            <x-product.image :src="$item['image']" :alt="$item['product']" />
                             <div>
                                 <h3>{{ $item['product'] }}</h3>
                                 <p>{{ $item['colour'] }} / {{ $item['size'] }}</p>

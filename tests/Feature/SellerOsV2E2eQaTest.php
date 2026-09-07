@@ -60,7 +60,7 @@ class SellerOsV2E2eQaTest extends TestCase
 
         $this->actingAs($seller)->get(route('seller.onboarding'))
             ->assertOk()
-            ->assertSee('Your shop is almost ready.')
+            ->assertSee('Set up your shop')
             ->assertDontSee('seller-mobile-bottom-nav')
             ->assertDontSee('Quick Action');
 

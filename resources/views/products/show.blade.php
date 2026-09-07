@@ -21,15 +21,14 @@
         <div class="product-detail__grid product-detail__grid--premium">
             <div class="product-gallery product-gallery--carousel product-detail-card" aria-label="Product gallery" data-product-gallery>
                 <div class="product-gallery__stage">
-                    @foreach ($product['images'] as $image)
+                    @forelse ($product['images'] as $image)
                         <figure class="product-gallery__slide @if($loop->first) is-active @endif" data-product-slide>
-                            <img src="{{ $image['path'] }}" alt="{{ $product['name'] }} {{ $image['label'] }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
-                            <figcaption>
-                                <span>{{ $image['label'] }}</span>
-                                <strong>{{ $product['name'] }}</strong>
-                            </figcaption>
+                            <x-product.image :src="$image['path']" :alt="$product['name'].' '.$image['label']" :loading="$loop->first ? 'eager' : 'lazy'" fallback-class="product-gallery__no-preview" />
+                            <figcaption><span>{{ $image['label'] }}</span><strong>{{ $product['name'] }}</strong></figcaption>
                         </figure>
-                    @endforeach
+                    @empty
+                        <x-product.image fallback-class="product-gallery__no-preview" />
+                    @endforelse
                     @if (count($product['images']) > 1)
                         <button class="product-gallery__control product-gallery__control--prev" type="button" data-product-gallery-prev aria-label="Previous image">
                             <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
@@ -43,7 +42,7 @@
                     <div class="product-gallery__thumbs" aria-label="Product image thumbnails">
                         @foreach ($product['images'] as $image)
                             <button class="@if($loop->first) is-active @endif" type="button" data-product-gallery-thumb aria-label="Show {{ $image['label'] }}">
-                                <img src="{{ $image['path'] }}" alt="{{ $image['label'] }}" loading="lazy">
+                                <x-product.image :src="$image['path']" :alt="$image['label']" />
                             </button>
                         @endforeach
                     </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Models\SellerCategoryRequest;
 use App\Models\SellerStorefrontCategory;
+use App\Models\Category;
 use App\Services\SellerAccountService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,11 +73,23 @@ class CategoryController extends Controller
         $data = $request->validate([
             'requested_category_name' => ['required', 'string', 'min:3', 'max:120'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'example_products' => ['nullable', 'string', 'max:1000'],
+            'suggested_parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
         ]);
 
-        $existing = $vendor->categoryRequests()
+        $normalizedName = Str::lower(trim($data['requested_category_name']));
+        $existingMasterCategory = Category::query()
+            ->where('is_active', true)
+            ->whereRaw('LOWER(name) = ?', [$normalizedName])
+            ->exists();
+
+        if ($existingMasterCategory) {
+            return back()->withErrors(['requested_category_name' => 'This marketplace category already exists. Select it from the product form.'])->withInput();
+        }
+
+        $existing = SellerCategoryRequest::query()
             ->where('status', SellerCategoryRequest::STATUS_PENDING)
-            ->whereRaw('LOWER(requested_category_name) = ?', [strtolower($data['requested_category_name'])])
+            ->whereRaw('LOWER(requested_category_name) = ?', [$normalizedName])
             ->exists();
 
         if ($existing) {
@@ -86,6 +99,11 @@ class CategoryController extends Controller
         $vendor->categoryRequests()->create([
             'requested_category_name' => $data['requested_category_name'],
             'description' => $data['description'] ?? null,
+            'example_products' => $data['example_products'] ?? null,
+            'suggested_parent_id' => $data['suggested_parent_id'] ?? null,
+            'suggested_parent_category' => filled($data['suggested_parent_id'] ?? null)
+                ? Category::query()->find($data['suggested_parent_id'])?->name
+                : null,
             'status' => SellerCategoryRequest::STATUS_PENDING,
         ]);
 

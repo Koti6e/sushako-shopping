@@ -53,7 +53,7 @@
                         @foreach ($cart as $key => $item)
                             <article class="elite-cart-item" data-checkout-item data-cart-key="{{ $key }}">
                                 <a class="elite-cart-item__image" href="{{ route('products.show', $item['slug']) }}">
-                                    <img src="{{ $item['image'] }}" alt="{{ $item['product'] }}" loading="lazy">
+                                    <x-product.image :src="$item['image']" :alt="$item['product']" />
                                 </a>
                                 <div class="elite-cart-item__body">
                                     <div>

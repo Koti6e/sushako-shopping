@@ -20,7 +20,12 @@ class AdminProductController extends Controller
     public function index(): View
     {
         return view('admin.products.index', [
-            'products' => ProductCatalog::products(),
+            'products' => Product::query()
+                ->with(['category.parent.parent.parent', 'images', 'variants', 'vendor'])
+                ->latest()
+                ->paginate(24)
+                ->withQueryString()
+                ->through(fn (Product $product): array => ProductCatalog::productArray($product)),
         ]);
     }
 
