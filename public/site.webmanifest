@@ -7,6 +7,12 @@
   "display": "standalone",
   "background_color": "#fffdf8",
   "theme_color": "#0e2038",
+  "shortcuts": [
+    { "name": "Shop", "short_name": "Shop", "url": "/shop", "icons": [{ "src": "/assets/brand/sushako-shopping-official-icon-192.png", "sizes": "192x192" }] },
+    { "name": "Categories", "short_name": "Categories", "url": "/#categories", "icons": [{ "src": "/assets/brand/sushako-shopping-official-icon-192.png", "sizes": "192x192" }] },
+    { "name": "Track Order", "short_name": "Track", "url": "/track-order", "icons": [{ "src": "/assets/brand/sushako-shopping-official-icon-192.png", "sizes": "192x192" }] },
+    { "name": "Cart", "short_name": "Cart", "url": "/cart", "icons": [{ "src": "/assets/brand/sushako-shopping-official-icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     {
       "src": "/assets/brand/sushako-shopping-official-icon-192.png",

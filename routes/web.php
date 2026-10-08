@@ -40,6 +40,7 @@ Route::get('/', [StorefrontController::class, 'home'])->name('home');
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
 Route::get('/shop', [StorefrontController::class, 'shop'])->name('shop');
+Route::get('/deals', [StorefrontController::class, 'deals'])->name('deals');
 Route::get('/search', [StorefrontController::class, 'search'])->name('search');
 Route::get('/shop/feed', [StorefrontController::class, 'feed'])->name('shop.feed');
 Route::post('/location', [StorefrontController::class, 'storeLocation'])->name('location.store');
@@ -47,6 +48,7 @@ Route::delete('/location', [StorefrontController::class, 'clearLocation'])->name
 Route::get('/departments/{slug}', [StorefrontController::class, 'department'])->name('department.show');
 Route::get('/category/{slug}', [StorefrontController::class, 'category'])->name('category.show');
 Route::get('/collections/{collection:slug}', [StorefrontController::class, 'collection'])->name('collections.show');
+Route::get('/stores', [StorefrontController::class, 'storesIndex'])->name('stores.index');
 Route::get('/stores/{vendor:slug}', [StorefrontController::class, 'seller'])->name('stores.show');
 Route::get('/products', [StorefrontController::class, 'shop'])->name('products.index');
 Route::get('/products/{slug}', [StorefrontController::class, 'product'])->name('products.show');

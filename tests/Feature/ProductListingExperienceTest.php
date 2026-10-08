@@ -17,9 +17,22 @@ class ProductListingExperienceTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('Shop Local. Shop Smart. Shop Sushako.')
-            ->assertSee('Browse by Category')
-            ->assertSee('Sushako Storefront Test Product')
+            ->assertSee('Shop by Category')
+            ->assertDontSee('Sushako Storefront Test Product')
+            ->assertDontSee('Test Products')
             ->assertDontSee('Marketplace content is being prepared.');
+    }
+
+    public function test_deals_and_stores_pages_use_public_marketplace_data(): void
+    {
+        $this->get(route('deals'))
+            ->assertOk()
+            ->assertSee('Deals')
+            ->assertSee('Lenovo 100e Celeron Laptop');
+
+        $this->get(route('stores.index'))
+            ->assertOk()
+            ->assertSee('Marketplace Stores');
     }
 
     public function test_products_listing_has_sidebar_filters_sorting_and_buy_now_actions(): void
@@ -46,7 +59,7 @@ class ProductListingExperienceTest extends TestCase
     public function test_product_card_add_to_bag_uses_real_cart_endpoint(): void
     {
         $this->withoutMiddleware(ValidateCsrfToken::class)
-            ->post(route('cart.store'), [
+            ->postJson(route('cart.store'), [
                 'slug' => 'lenovo-100e-celeron-laptop',
                 'colour' => 'Standard',
                 'size' => '500GB HDD',

@@ -1,78 +1,100 @@
 <x-layouts.customer title="Sushako Shopping">
-    <section class="site-shell section-block marketplace-hero" aria-label="Marketplace hero">
-        <div class="marketplace-hero__panel">
-            <div class="marketplace-hero__copy">
-                <p class="eyebrow">Verified sellers · Live stock</p>
-                <h1>Shop Local. Shop Smart. Shop Sushako.</h1>
-                <p class="lede">Discover everyday essentials, trusted local stores, and products that are already live in the marketplace.</p>
-                <div class="hero-carousel__actions">
-                    <a class="button button--primary" href="{{ route('shop') }}">Shop the Marketplace</a>
-                    <a class="button button--ghost" href="{{ route('search') }}">Explore Finds</a>
-                </div>
-            </div>
-
-            @if ($heroContent->isNotEmpty())
-                @php($hero = $heroContent->first())
-                <div class="marketplace-hero__feature">
-                    @if ($hero['image'])
-                        <img src="{{ $hero['image'] }}" alt="{{ $hero['title'] }}" loading="eager">
-                    @else
-                        <div class="marketplace-content-no-preview"><i class="fa-regular fa-image" aria-hidden="true"></i> No Preview Available</div>
-                    @endif
-                    <div>
-                        <p class="eyebrow">Featured</p>
-                        <h2>{{ $hero['title'] }}</h2>
-                        @if ($hero['subtitle'])
-                            <p>{{ $hero['subtitle'] }}</p>
-                        @endif
-                        @if ($hero['destination'] && $hero['cta_label'])
-                            <a href="{{ $hero['destination'] }}">{{ $hero['cta_label'] }}</a>
+    <section class="site-shell marketplace-hero" data-hero-carousel aria-label="Marketplace promotions">
+        <div class="marketplace-hero__slides">
+            @foreach ($heroBanners as $banner)
+                <article class="marketplace-hero__slide @if($loop->first) is-active @endif" data-hero-slide role="group" aria-roledescription="slide" aria-label="{{ $loop->iteration }} of 5" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                    <div class="marketplace-hero__copy">
+                        @if ($loop->first)<p class="eyebrow">Shop Local. Shop Smart. Shop Sushako.</p>@else<p class="eyebrow">{{ $banner['eyebrow'] }}</p>@endif
+                        <h1>{{ $banner['title'] }}</h1>
+                        @if ($banner['subtitle'])<p>{{ $banner['subtitle'] }}</p>@endif
+                        <a class="button button--primary" href="{{ $banner['href'] }}">{{ $banner['cta'] }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                    <div class="marketplace-hero__media">
+                        @if ($banner['image'])
+                            <img src="{{ $banner['image'] }}" alt="{{ $banner['title'] }}" width="720" height="360" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                        @else
+                            <img src="{{ asset('assets/brand/sushako-shopping-official-icon-512.png') }}" alt="Sushako" width="512" height="512" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                         @endif
                     </div>
-                </div>
-            @endif
-        </div>
-
-        <div class="marketplace-hero__showcase" aria-label="Live marketplace picks">
-            @foreach ($products->take(3) as $product)
-                <a class="marketplace-hero__tile" href="{{ route('products.show', $product['slug']) }}">
-                    <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name'].' front view'" />
-                    <span>{{ $product['name'] }}</span>
-                    <strong>₹{{ number_format($product['selling_price']) }}</strong>
-                </a>
+                </article>
             @endforeach
+
+            <article class="marketplace-hero__slide marketplace-hero__slide--seller" data-hero-slide role="group" aria-roledescription="slide" aria-label="5 of 5" aria-hidden="true">
+                <div class="marketplace-hero__copy">
+                    <p class="eyebrow">For independent businesses</p>
+                    <h2>Sell on Sushako</h2>
+                    <p>Bring your products to a growing marketplace of local and independent stores.</p>
+                    <a class="button button--primary" href="{{ route('seller.login') }}">Become a Seller <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="marketplace-hero__media marketplace-hero__media--brand">
+                    <img src="{{ asset('assets/brand/sushako-shopping-official-icon-512.png') }}" alt="Sushako marketplace" width="512" height="512" loading="lazy">
+                </div>
+            </article>
+        </div>
+        <div class="marketplace-hero__controls">
+            <button type="button" data-hero-prev aria-label="Previous promotion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button>
+            <div class="marketplace-hero__indicators" aria-label="Choose promotion">
+                @for ($slide = 0; $slide < 5; $slide++)
+                    <button type="button" data-hero-dot aria-label="Show promotion {{ $slide + 1 }}" aria-pressed="{{ $slide === 0 ? 'true' : 'false' }}"></button>
+                @endfor
+            </div>
+            <button type="button" data-hero-next aria-label="Next promotion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
         </div>
     </section>
 
-    @if ($announcements->isNotEmpty())
-        <section class="marketplace-announcements" aria-label="Marketplace announcements">
-            <div class="site-shell">
-                @foreach ($announcements as $announcement)
-                    <div>
-                        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
-                        <span><strong>{{ $announcement['title'] }}</strong>@if ($announcement['subtitle']) {{ $announcement['subtitle'] }}@endif</span>
-                        @if ($announcement['destination'] && $announcement['cta_label'])
-                            <a href="{{ $announcement['destination'] }}">{{ $announcement['cta_label'] }}</a>
-                        @endif
-                    </div>
-                @endforeach
+    <section class="site-shell discovery-workspace" id="categories" aria-label="Shop by category and discover products">
+        <aside class="master-category-panel">
+            <div class="master-category-panel__heading">
+                <p class="eyebrow">Marketplace</p>
+                <h2>Shop by Category</h2>
             </div>
-        </section>
-    @endif
+            <nav aria-label="Master categories">
+                <a class="is-active" href="{{ route('shop') }}"><span>All Products</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                @foreach ($categories as $category)
+                    <a href="{{ route('category.show', $category['slug']) }}">
+                        <span>{{ $category['name'] }}</span>
+                        <small>{{ $category['product_count'] }}</small>
+                    </a>
+                @endforeach
+            </nav>
+        </aside>
 
-    <section class="site-shell section-block section-block--storefront" id="categories">
-        <div class="section-heading section-heading--editorial">
-            <div><p class="eyebrow">Marketplace</p><h2>Browse by Category</h2></div>
-            <a href="{{ route('shop') }}">View All Products</a>
+        <div class="discovery-rails">
+            <section class="product-rail-section" aria-labelledby="fresh-picks-heading">
+                <div class="product-rail-heading">
+                    <div><p class="eyebrow">From live marketplace sellers</p><h2 id="fresh-picks-heading">Fresh picks</h2></div>
+                    <div class="product-rail-controls">
+                        <button type="button" data-rail-prev aria-label="Scroll fresh picks left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button>
+                        <button type="button" data-rail-next aria-label="Scroll fresh picks right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+                    </div>
+                </div>
+                <div class="product-rail" data-product-rail tabindex="0" role="region" aria-label="Fresh picks">
+                    @forelse ($products as $product)
+                        <div class="product-rail__item"><x-product.card :product="$product" compact /></div>
+                    @empty
+                        <x-ui.empty-state title="Products are on their way" description="Published products from marketplace sellers will appear here." />
+                    @endforelse
+                </div>
+            </section>
+
+            @foreach ($categoryDiscovery as $discovery)
+                <section class="product-rail-section" aria-labelledby="category-rail-{{ $discovery['category']['slug'] }}">
+                    <div class="product-rail-heading">
+                        <div><p class="eyebrow">{{ $discovery['category']['name'] }}</p><h2 id="category-rail-{{ $discovery['category']['slug'] }}">Popular in {{ $discovery['category']['name'] }}</h2></div>
+                        <div class="product-rail-controls">
+                            <a href="{{ route('category.show', $discovery['category']['slug']) }}">Explore category</a>
+                            <button type="button" data-rail-prev aria-label="Scroll {{ $discovery['category']['name'] }} left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button>
+                            <button type="button" data-rail-next aria-label="Scroll {{ $discovery['category']['name'] }} right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+                        </div>
+                    </div>
+                    <div class="product-rail" data-product-rail tabindex="0" role="region" aria-label="{{ $discovery['category']['name'] }} products">
+                        @foreach ($discovery['products'] as $product)
+                            <div class="product-rail__item"><x-product.card :product="$product" compact /></div>
+                        @endforeach
+                    </div>
+                </section>
+            @endforeach
         </div>
-
-        <nav class="category-pills" aria-label="Marketplace categories">
-            @forelse ($activeCategories as $category)
-                <a class="category-pill" href="{{ route('category.show', $category['slug']) }}">{{ $category['name'] }}</a>
-            @empty
-                <span class="category-pill category-pill--muted">Categories are being prepared</span>
-            @endforelse
-        </nav>
     </section>
 
     @foreach ($collectionSections as $section)
@@ -94,40 +116,4 @@
             </div>
         </section>
     @endforeach
-
-    <section class="site-shell section-block section-block--storefront available-products-section">
-        <div class="section-heading section-heading--editorial">
-            <div><p class="eyebrow">Marketplace Products</p><h2>Fresh picks from live sellers</h2></div>
-            <a href="{{ route('shop') }}">View All Products</a>
-        </div>
-        <div class="product-grid product-grid--compact product-grid--available">
-            @forelse ($products as $product)
-                <x-product.card :product="$product" compact />
-            @empty
-                <x-ui.empty-state title="No products available" description="Published seller products will appear here automatically." />
-            @endforelse
-        </div>
-    </section>
-
-    @if ($promotions->isNotEmpty())
-        <section class="site-shell marketplace-promotions" aria-label="Marketplace promotions">
-            @foreach ($promotions as $promotion)
-                <article class="marketplace-promotion">
-                    @if ($promotion['image'])
-                        <img src="{{ $promotion['image'] }}" alt="{{ $promotion['title'] }}" loading="lazy">
-                    @else
-                        <div class="marketplace-promotion__no-preview">No Preview Available</div>
-                    @endif
-                    <div>
-                        <p class="eyebrow">Marketplace update</p>
-                        <h2>{{ $promotion['title'] }}</h2>
-                        @if ($promotion['subtitle'])<p>{{ $promotion['subtitle'] }}</p>@endif
-                        @if ($promotion['destination'] && $promotion['cta_label'])
-                            <a class="button button--secondary" href="{{ $promotion['destination'] }}">{{ $promotion['cta_label'] }}</a>
-                        @endif
-                    </div>
-                </article>
-            @endforeach
-        </section>
-    @endif
 </x-layouts.customer>

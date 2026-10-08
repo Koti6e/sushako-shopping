@@ -35,7 +35,7 @@ class ProductDetailTest extends TestCase
         $this->get(route('products.show', 'sushako-razorpay-test-product'))->assertNotFound();
     }
 
-    public function test_live_seller_product_with_test_in_name_remains_publicly_visible(): void
+    public function test_test_product_is_not_publicly_visible(): void
     {
         $seller = User::factory()->create(['role' => User::ROLE_SELLER, 'status' => User::STATUS_ACTIVE]);
         $vendor = Vendor::query()->create([
@@ -81,10 +81,7 @@ class ProductDetailTest extends TestCase
             'stock' => 3,
         ]);
 
-        $this->get(route('products.show', $product->slug))
-            ->assertOk()
-            ->assertSee('Storefront Test Product')
-            ->assertSee('Visible Seller Store');
+        $this->get(route('products.show', $product->slug))->assertNotFound();
     }
 
     public function test_laptop_product_uses_storage_options_with_variant_pricing(): void
@@ -93,7 +90,8 @@ class ProductDetailTest extends TestCase
             ->assertOk()
             ->assertSee('Lenovo 100e Celeron Laptop')
             ->assertSee('Budgeted Laptop')
-            ->assertSee('<legend>Storage</legend>', false)
+            ->assertSee('data-product-options', false)
+            ->assertSee('Storage')
             ->assertSee('500GB HDD')
             ->assertSee('data-option-price="9000"', false)
             ->assertSee('500GB SSD')

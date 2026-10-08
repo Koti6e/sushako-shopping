@@ -41,10 +41,16 @@ class ProductCatalog
         return self::$categoriesCache = Category::query()
             ->whereNull('parent_id')
             ->where('is_active', true)
+            ->where('is_master', true)
+            ->where('needs_review', false)
+            ->where('name', 'not like', '%test%')
+            ->where('slug', 'not like', '%test%')
+            ->where('name', 'not like', '%demo%')
+            ->where('slug', 'not like', '%demo%')
             ->with([
                 'products' => fn ($query) => $query->where('is_published', true),
-                'children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name')->with([
-                    'children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name'),
+                'children' => fn ($query) => $query->where('is_active', true)->where('needs_review', false)->where('name', 'not like', '%test%')->where('slug', 'not like', '%test%')->where('name', 'not like', '%demo%')->where('slug', 'not like', '%demo%')->orderBy('sort_order')->orderBy('name')->with([
+                    'children' => fn ($query) => $query->where('is_active', true)->where('needs_review', false)->where('name', 'not like', '%test%')->where('slug', 'not like', '%test%')->where('name', 'not like', '%demo%')->where('slug', 'not like', '%demo%')->orderBy('sort_order')->orderBy('name'),
                 ]),
             ])
             ->orderBy('sort_order')
@@ -61,8 +67,17 @@ class ProductCatalog
 
     public static function department(string $slug): ?array
     {
-        $category = Category::query()->where('slug', $slug)->where('is_active', true)->first();
-
+        $category = Category::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->where('needs_review', false)
+            ->where('name', 'not like', '%test%')
+            ->where('slug', 'not like', '%test%')
+            ->where('name', 'not like', '%demo%')
+            ->where('slug', 'not like', '%demo%')
+            ->where('name', 'not like', '%placeholder%')
+            ->where('slug', 'not like', '%placeholder%')
+            ->first();
         return $category ? self::categoryArray($category) : null;
     }
 
@@ -99,6 +114,49 @@ class ProductCatalog
     {
         return self::sellerDiverseQuery(self::marketplaceQuery())
             ->limit($limit)
+            ->get()
+            ->map(fn (Product $product): array => self::productArray($product));
+    }
+
+    public static function promotionalFeed(int $limit = 4): Collection
+    {
+        return self::sellerDiverseQuery(self::marketplaceQuery()->whereHas('images'))
+            ->limit(min(4, max(0, $limit)))
+            ->get()
+            ->map(fn (Product $product): array => self::productArray($product));
+    }
+
+    public static function departmentFeed(string $slug, int $limit = 8): Collection
+    {
+        $category = Category::query()
+            ->where('slug', $slug)
+            ->whereNull('parent_id')
+            ->where('is_master', true)
+            ->where('is_active', true)
+            ->where('needs_review', false)
+            ->first();
+
+        if (! $category) {
+            return collect();
+        }
+
+        $categoryIds = [$category->id];
+        $parents = $categoryIds;
+        while ($parents) {
+            $children = Category::query()
+                ->whereIn('parent_id', $parents)
+                ->where('is_active', true)
+                ->where('needs_review', false)
+                ->where('name', 'not like', '%test%')
+                ->where('name', 'not like', '%demo%')
+                ->pluck('id')
+                ->all();
+            $categoryIds = [...$categoryIds, ...$children];
+            $parents = $children;
+        }
+
+        return self::sellerDiverseQuery(self::marketplaceQuery()->whereIn('products.category_id', $categoryIds))
+            ->limit(min(12, max(1, $limit)))
             ->get()
             ->map(fn (Product $product): array => self::productArray($product));
     }
@@ -178,6 +236,17 @@ class ProductCatalog
         if (! empty($filters['seller'])) {
             $query->where('products.vendor_id', (int) $filters['seller']);
         }
+        if (($filters['shop'] ?? null) === 'featured') {
+            $query->where('products.is_best_seller', true);
+        } elseif (($filters['shop'] ?? null) === 'new') {
+            $query->where('products.is_new', true);
+        }
+        if (! empty($filters['wishlist'])) {
+            $query->whereIn('products.slug', session('wishlist', []));
+        }
+        if (! empty($filters['deals'])) {
+            $query->whereColumn('products.mrp', '>', 'products.selling_price');
+        }
         if (! empty($filters['brand'])) {
             $query->where('products.brand', (string) $filters['brand']);
         }
@@ -190,15 +259,23 @@ class ProductCatalog
         if (isset($filters['max_price']) && is_numeric($filters['max_price'])) {
             $query->where('products.selling_price', '<=', max(0, (int) $filters['max_price']));
         }
+        match ($filters['price'] ?? null) {
+            'under-500' => $query->where('products.selling_price', '<', 500),
+            '500-999' => $query->whereBetween('products.selling_price', [500, 999]),
+            '1000-4999' => $query->whereBetween('products.selling_price', [1000, 4999]),
+            '5000-plus' => $query->where('products.selling_price', '>=', 5000),
+            default => null,
+        };
 
         $sort = (string) ($filters['sort'] ?? 'featured');
         $ranked = in_array($sort, ['featured', 'relevance', 'newest'], true)
             ? self::sellerDiverseQuery($query, $sort === 'newest' ? 'products.created_at desc, products.id desc' : null)
             : $query->when($sort === 'price-low-high', fn ($builder) => $builder->orderBy('products.selling_price')->orderBy('products.id'))
                 ->when($sort === 'price-high-low', fn ($builder) => $builder->orderByDesc('products.selling_price')->orderByDesc('products.id'))
+                ->when($sort === 'name-a-z', fn ($builder) => $builder->orderBy('products.name')->orderBy('products.id'))
                 ->when($sort === 'rating', fn ($builder) => $builder->orderByDesc('products.rating')->orderByDesc('products.id'))
                 ->when($sort === 'popularity', fn ($builder) => $builder->orderByDesc('products.seller_product_views')->orderByDesc('products.id'))
-                ->when(! in_array($sort, ['price-low-high', 'price-high-low', 'rating', 'popularity'], true), fn ($builder) => $builder->orderByDesc('products.created_at')->orderByDesc('products.id'));
+                ->when(! in_array($sort, ['price-low-high', 'price-high-low', 'name-a-z', 'rating', 'popularity'], true), fn ($builder) => $builder->orderByDesc('products.created_at')->orderByDesc('products.id'));
 
         $products = $ranked->limit($limit + 1)->get();
         $hasMore = $products->count() > $limit;
@@ -381,22 +458,28 @@ class ProductCatalog
         $stock = (int) $variants->sum('stock');
         $scheduled = $product->seller_status === Product::SELLER_STATUS_SCHEDULED && $product->scheduled_go_live_at?->isFuture();
         $discount = $displayMrp > $displaySellingPrice ? (int) round((($displayMrp - $displaySellingPrice) / $displayMrp) * 100) : 0;
-        $details = $product->category->slug === 'electronics' ? [
-            'Processor' => $product->fabric ?: 'Intel Celeron',
-            'Memory' => $product->fit ?: '4GB RAM',
-            'Storage' => $product->sleeve ?: implode(' / ', $optionValues ?: ['Standard']),
-            'Best For' => $product->occasion ?: 'Students, browsing and everyday office use',
-            'Country of Origin' => $product->country_of_origin,
-            'Return' => $product->return_policy,
-        ] : [
-            'Fabric' => $product->fabric ?: 'Premium Finish',
-            'Fit' => $product->fit ?: 'Standard',
-            'Sleeve' => $product->sleeve ?: 'Not Applicable',
-            'Pattern' => $product->pattern ?: 'Premium Finish',
-            'Occasion' => $product->occasion ?: 'Everyday Shopping',
-            'Country of Origin' => $product->country_of_origin,
-            'Return' => $product->return_policy,
-        ];
+        $details = match ($department->slug) {
+            'electronics', 'computers-it' => [
+                'Processor' => $product->fabric,
+                'Memory' => $product->fit,
+                'Storage' => $product->sleeve,
+                'Best For' => $product->occasion,
+            ],
+            'fashion', 'womens-clothing', 'footwear', 'bags-luggage-accessories' => [
+                'Fabric' => $product->fabric,
+                'Fit' => $product->fit,
+                'Pattern' => $product->pattern,
+                'Occasion' => $product->occasion,
+            ],
+            default => [],
+        };
+        $details = array_filter($details, fn ($value): bool => filled($value) && ! in_array(mb_strtolower(trim((string) $value)), ['premium finish', 'standard', 'not applicable', 'everyday shopping'], true));
+        if (filled($product->country_of_origin)) {
+            $details['Country of Origin'] = $product->country_of_origin;
+        }
+        if (filled($product->return_policy)) {
+            $details['Return Policy'] = $product->return_policy;
+        }
 
         return [
             'id' => $product->id,
@@ -476,9 +559,7 @@ class ProductCatalog
                 'Fast fulfillment updates',
                 'WhatsApp support visible',
             ],
-            'reviews_list' => [
-                ['name' => 'Sushako Customer', 'rating' => 5, 'text' => 'A polished Sushako shopping experience with clear details and reassuring support.'],
-            ],
+            'reviews_list' => [],
         ];
     }
 
@@ -524,18 +605,21 @@ class ProductCatalog
             ->where('is_published', true)
             ->whereIn('seller_status', [Product::SELLER_STATUS_APPROVED, Product::SELLER_STATUS_ACTIVE, Product::SELLER_STATUS_SCHEDULED])
             ->whereHas('category', function (Builder $query): void {
-                $query
-                    ->where('is_active', true)
+                self::excludeInternalCategory($query);
+                $query->where('is_active', true)
                     ->where(function (Builder $query): void {
                         $query->whereNull('parent_id')->orWhereHas('parent', function (Builder $parent): void {
-                            $parent
-                                ->where('is_active', true)
+                            self::excludeInternalCategory($parent);
+                            $parent->where('is_active', true)
                                 ->where(function (Builder $parent): void {
                                     $parent->whereNull('parent_id')->orWhereHas('parent', function (Builder $grandparent): void {
-                                        $grandparent
-                                            ->where('is_active', true)
+                                        self::excludeInternalCategory($grandparent);
+                                        $grandparent->where('is_active', true)
                                             ->where(function (Builder $grandparent): void {
-                                                $grandparent->whereNull('parent_id')->orWhereHas('parent', fn (Builder $root) => $root->where('is_active', true));
+                                                $grandparent->whereNull('parent_id')->orWhereHas('parent', function (Builder $root): void {
+                                                    self::excludeInternalCategory($root);
+                                                    $root->where('is_active', true);
+                                                });
                                             });
                                     });
                                 });
@@ -546,7 +630,7 @@ class ProductCatalog
                 ->where('store_status', Vendor::STORE_LIVE)
                 ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
             ->where(function (Builder $query): void {
-                foreach (['staging', 'sample', 'razorpay-test'] as $blocked) {
+                foreach (['test', 'demo', 'placeholder', 'staging', 'sample', 'razorpay-test'] as $blocked) {
                     $query
                         ->where('name', 'not like', '%'.$blocked.'%')
                         ->where('slug', 'not like', '%'.$blocked.'%')
@@ -556,6 +640,17 @@ class ProductCatalog
                 }
             })
             ->whereHas('variants');
+    }
+
+    private static function excludeInternalCategory(Builder $query): void
+    {
+        $query->where('needs_review', false);
+
+        foreach (['test', 'demo', 'placeholder'] as $blocked) {
+            $query
+                ->where('name', 'not like', '%'.$blocked.'%')
+                ->where('slug', 'not like', '%'.$blocked.'%');
+        }
     }
 
     private static function fullTextAvailable(): bool
@@ -578,7 +673,11 @@ class ProductCatalog
 
     private static function descendantCategories(Category $category): Collection
     {
-        $children = $category->children ?? collect();
+        $children = ($category->children ?? collect())->filter(fn (Category $child): bool => $child->is_active
+            && ! $child->needs_review
+            && ! str_contains(mb_strtolower($child->name.' '.$child->slug), 'test')
+            && ! str_contains(mb_strtolower($child->name.' '.$child->slug), 'demo')
+            && ! str_contains(mb_strtolower($child->name.' '.$child->slug), 'placeholder'));
 
         return $children->flatMap(function (Category $child): array {
             return [$child, ...self::descendantCategories($child)->all()];

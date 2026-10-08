@@ -338,6 +338,15 @@ function updateCartBadges(count) {
     });
 }
 
+function updateCartFloat(count, subtotal) {
+    const cartFloat = document.querySelector('[data-cart-float]');
+    if (!cartFloat) return;
+    cartFloat.hidden = count < 1;
+    cartFloat.querySelector('[data-cart-float-count]')?.replaceChildren(`${count} ${count === 1 ? 'item' : 'items'}`);
+    cartFloat.querySelector('[data-cart-float-subtotal]')?.replaceChildren(formatCurrency(subtotal));
+    cartFloat.setAttribute('aria-label', `Open cart, ${count} ${count === 1 ? 'item' : 'items'}, total ${formatCurrency(subtotal)}`);
+}
+
 function showToast(message) {
     if (!toast) return;
     toast.textContent = message;
@@ -503,6 +512,7 @@ async function updateCartLine(line, quantity) {
     try {
         const data = await sendJson(`/cart/${encodeURIComponent(key)}`, 'PATCH', { quantity });
         updateCartBadges(data.cart_count);
+        updateCartFloat(data.cart_count, data.subtotal);
         refreshCheckoutSummary(data.cart, data.subtotal, data.summary);
         line.classList.add('is-updated');
         showToast(data.message ?? 'Shopping bag updated');
@@ -738,6 +748,7 @@ document.addEventListener('click', async (event) => {
             const data = await sendJson(`/cart/${encodeURIComponent(key)}`, 'DELETE');
             line.remove();
             updateCartBadges(data.cart_count);
+            updateCartFloat(data.cart_count, data.subtotal);
             refreshCheckoutSummary(data.cart, data.subtotal, data.summary);
             showToast(data.message ?? 'Removed from cart');
             if (data.cart_count === 0) window.location.href = '/cart';
@@ -859,6 +870,7 @@ document.addEventListener('click', async (event) => {
                 addButton.textContent = 'Added';
             }
             updateCartBadges(data.cart_count);
+            updateCartFloat(data.cart_count, data.subtotal);
             renderMiniCart(data.cart, data.subtotal);
             showToast(data.message ?? 'Added to Cart');
             setTimeout(() => {
@@ -942,8 +954,16 @@ function initHeroCarousel() {
 
     const show = (index) => {
         active = (index + slides.length) % slides.length;
-        slides.forEach((slide, slideIndex) => slide.classList.toggle('is-active', slideIndex === active));
-        dots.forEach((dot, dotIndex) => dot.classList.toggle('is-active', dotIndex === active));
+        slides.forEach((slide, slideIndex) => {
+            const isActive = slideIndex === active;
+            slide.classList.toggle('is-active', isActive);
+            slide.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+        });
+        dots.forEach((dot, dotIndex) => {
+            const isActive = dotIndex === active;
+            dot.classList.toggle('is-active', isActive);
+            dot.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
     };
 
     const restart = () => {
@@ -973,6 +993,7 @@ function initHeroCarousel() {
     carousel.addEventListener('mouseleave', restart);
     carousel.addEventListener('focusin', pause);
     carousel.addEventListener('focusout', restart);
+    document.addEventListener('visibilitychange', () => document.hidden ? pause() : restart());
     carousel.addEventListener('touchstart', (event) => {
         touchStartX = event.touches[0].clientX;
     }, { passive: true });
@@ -1173,25 +1194,32 @@ function initShopFilters() {
 function initMarketplaceInfiniteScroll() {
     const shop = document.querySelector('[data-infinite-feed]');
     const grid = shop?.querySelector('[data-product-grid]');
-    const sentinel = shop?.querySelector('[data-infinite-load-more]');
+    const sentinel = shop?.querySelector('[data-infinite-sentinel]');
     const loading = shop?.querySelector('[data-infinite-loading]');
-    if (!shop || !grid || !sentinel || sentinel.dataset.ready === 'true') return;
+    const end = shop?.querySelector('[data-infinite-end]');
+    const retry = shop?.querySelector('[data-infinite-retry]');
+    if (!shop || !grid || !sentinel || sentinel.dataset.ready === 'true' || !('IntersectionObserver' in window)) return;
 
     sentinel.dataset.ready = 'true';
+    shop.dataset.infiniteReady = 'true';
     let cursor = btoa(JSON.stringify({
         seen: (shop.dataset.infiniteSeen || '').split(',').filter(Boolean).map(Number),
     }));
     let busy = false;
-    let hasMore = true;
+    let hasMore = shop.dataset.infiniteHasMore === 'true';
+    let paused = false;
 
     const load = async () => {
-        if (busy || !hasMore) return;
+        if (busy || !hasMore || paused) return;
         busy = true;
-        sentinel.disabled = true;
         loading.hidden = false;
+        end.hidden = true;
+        retry.hidden = true;
         try {
             const params = new URLSearchParams(window.location.search);
             params.delete('page');
+            if (shop.dataset.infiniteCategory && !params.has('category')) params.set('category', shop.dataset.infiniteCategory);
+            if (shop.dataset.infiniteDeals === 'true') params.set('deals', '1');
             params.set('cursor', cursor);
             params.set('limit', '12');
             const response = await fetch(`${shop.dataset.infiniteFeed}?${params.toString()}`, {
@@ -1203,23 +1231,37 @@ function initMarketplaceInfiniteScroll() {
             if (data.html) grid.insertAdjacentHTML('beforeend', data.html);
             cursor = data.next_cursor || cursor;
             hasMore = Boolean(data.has_more);
-            sentinel.hidden = !hasMore;
-            if (!hasMore) loading.textContent = 'You’ve reached the end of the marketplace.';
-        } catch (error) {
-            loading.textContent = 'Unable to load more products. Please try again.';
-            sentinel.disabled = false;
+            end.hidden = hasMore;
+            loading.hidden = true;
+            if (!hasMore) observer.disconnect();
+        } catch {
+            paused = true;
+            loading.hidden = true;
+            retry.hidden = false;
         } finally {
             busy = false;
-            sentinel.disabled = !hasMore;
-            loading.hidden = hasMore;
         }
     };
 
-    sentinel.addEventListener('click', load);
-    if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && load()), { rootMargin: '480px' });
-        observer.observe(sentinel);
-    }
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && load()), { rootMargin: '480px' });
+    observer.observe(sentinel);
+    retry.addEventListener('click', () => {
+        paused = false;
+        load();
+    });
+}
+
+function initProductRails() {
+    document.querySelectorAll('.product-rail-section').forEach((section) => {
+        const rail = section.querySelector('[data-product-rail]');
+        if (!rail) return;
+        const scroll = (direction) => rail.scrollBy({
+            left: direction * Math.max(240, Math.round(rail.clientWidth * 0.8)),
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
+        section.querySelector('[data-rail-prev]')?.addEventListener('click', () => scroll(-1));
+        section.querySelector('[data-rail-next]')?.addEventListener('click', () => scroll(1));
+    });
 }
 
 document.addEventListener('keydown', (event) => {
@@ -1679,6 +1721,7 @@ initProductGallery();
 initWhatsappPulse();
 initShopFilters();
 initMarketplaceInfiniteScroll();
+initProductRails();
 initRotatingSearchPlaceholder();
 initStorefrontReveal();
 initCustomerManagement();

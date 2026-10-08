@@ -1,13 +1,14 @@
-const CACHE_NAME = 'sushako-shell-v2';
+const CACHE_NAME = 'sushako-shell-v3';
 const APP_SHELL = [
-    '/',
+    '/offline.html',
     '/site.webmanifest',
     '/assets/brand/sushako-shopping-official-icon-192.png',
     '/assets/brand/sushako-shopping-official-icon-512.png',
 ];
 
 const NEVER_CACHE = ['/admin', '/seller', '/account', '/checkout', '/orders', '/cart', '/webhooks'];
-const COMMERCE_PAGES = ['/shop', '/products', '/category', '/departments', '/collections', '/stores', '/search'];
+const COMMERCE_PAGES = ['/shop', '/deals', '/products', '/category', '/departments', '/collections', '/stores', '/search'];
+const STATIC_ASSET = /\.(?:css|js|woff2?|ttf|otf|eot|png|jpe?g|webp|avif|svg|ico|webmanifest)$/i;
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -32,12 +33,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Commerce HTML is always network-first so prices, availability and seller
-    // identity do not become stale. The cached shell is only a safe fallback.
-    if (COMMERCE_PAGES.some((prefix) => url.pathname.startsWith(prefix))) {
-        event.respondWith(fetch(request).catch(() => caches.match(request).then((cached) => cached || caches.match('/'))));
+    // Live commerce and navigation HTML must never fall back to cached prices.
+    if (COMMERCE_PAGES.some((prefix) => url.pathname.startsWith(prefix)) || request.mode === 'navigate' || url.pathname === '/') {
+        event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
         return;
     }
+
+    if (!STATIC_ASSET.test(url.pathname) && url.pathname !== '/') return;
 
     event.respondWith(
         fetch(request)

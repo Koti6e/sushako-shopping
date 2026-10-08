@@ -23,19 +23,65 @@ class StorefrontController extends Controller
     {
         $products = ProductCatalog::marketplaceFeed(8);
         $categories = ProductCatalog::categories();
-        $productDepartmentSlugs = $products->pluck('department_slug')->unique();
-        $activeCategories = collect($categories)
-            ->filter(fn (array $category): bool => $productDepartmentSlugs->contains($category['slug']))
+        $categoryModels = Category::query()
+            ->where('is_active', true)
+            ->where('needs_review', false)
+            ->where(function ($query): void {
+                foreach (['test', 'demo', 'placeholder'] as $blocked) {
+                    $query->where('name', 'not like', '%'.$blocked.'%')->where('slug', 'not like', '%'.$blocked.'%');
+                }
+            })
+            ->with('parent.parent.parent')
+            ->get()
+            ->keyBy('id');
+        $categoryCounts = $this->marketplaceCategoryCounts($categoryModels);
+        $activeCategories = collect($categories)->map(fn (array $category): array => array_merge($category, [
+            'product_count' => (int) ($categoryCounts[$category['id']] ?? 0),
+        ]));
+        $heroBanners = ProductCatalog::promotionalFeed(4)
+            ->map(fn (array $product): array => [
+                'eyebrow' => $product['category'],
+                'title' => $product['name'],
+                'subtitle' => $product['short_description'],
+                'image' => $product['images'][0]['path'] ?? null,
+                'href' => route('products.show', $product['slug']),
+                'cta' => 'Shop this find',
+            ])
             ->values();
-        $content = MarketingContent::query()
+        foreach ($categories as $category) {
+            if ($heroBanners->count() >= 4) {
+                break;
+            }
+            $heroBanners->push([
+                'eyebrow' => 'Marketplace category',
+                'title' => $category['headline'],
+                'subtitle' => $category['description'],
+                'image' => $category['image'],
+                'href' => route('department.show', $category['slug']),
+                'cta' => 'Explore '.$category['name'],
+            ]);
+        }
+        $heroBanners = $heroBanners->take(4)->values();
+
+        $categoryDiscovery = collect();
+        foreach ($activeCategories->where('product_count', '>', 0) as $category) {
+            $categoryProducts = ProductCatalog::departmentFeed($category['slug'], 8);
+            if ($categoryProducts->isNotEmpty()) {
+                $categoryDiscovery->push(['category' => $category, 'products' => $categoryProducts]);
+            }
+            if ($categoryDiscovery->count() >= 4) {
+                break;
+            }
+        }
+
+        $collectionContent = MarketingContent::query()
             ->visible()
-            ->with(['category', 'product', 'productCollection'])
-            ->whereIn('placement', ['homepage_hero', 'homepage_announcement', 'homepage_promotion', 'homepage_collection', 'homepage_category'])
+            ->with('productCollection')
+            ->where('placement', 'homepage_collection')
             ->get()
             ->map(fn (MarketingContent $item): array => $this->contentData($item));
 
-        $collectionSections = $content
-            ->where('placement', 'homepage_collection')
+        $collectionSections = $collectionContent
             ->map(function (array $item): array {
                 $item['products'] = $item['collection']
                     ? $this->publicCollectionProducts($item['collection'])->take(8)
@@ -47,12 +93,10 @@ class StorefrontController extends Controller
             ->values();
 
         return view('welcome', [
-            'heroContent' => $content->where('placement', 'homepage_hero')->values(),
-            'announcements' => $content->where('placement', 'homepage_announcement')->values(),
-            'promotions' => $content->whereIn('placement', ['homepage_promotion', 'homepage_category'])->values(),
+            'heroBanners' => $heroBanners,
+            'categoryDiscovery' => $categoryDiscovery,
             'collectionSections' => $collectionSections,
-            'categories' => $categories,
-            'activeCategories' => $activeCategories->isNotEmpty() ? $activeCategories : collect($categories)->take(4),
+            'categories' => $activeCategories,
             'products' => $products->take(8),
         ]);
     }
@@ -61,6 +105,13 @@ class StorefrontController extends Controller
     {
         return view('shop.index', array_merge($this->listingData($request), [
             'title' => 'Shop - Sushako Shopping',
+        ]));
+    }
+
+    public function deals(Request $request)
+    {
+        return view('shop.index', array_merge($this->listingData($request, dealsOnly: true), [
+            'title' => 'Deals - Sushako Shopping',
         ]));
     }
 
@@ -104,8 +155,12 @@ class StorefrontController extends Controller
             'category' => ['nullable', 'string', 'max:160'],
             'seller' => ['nullable', 'integer', 'min:1'],
             'brand' => ['nullable', 'string', 'max:120'],
+            'shop' => ['nullable', Rule::in(['featured', 'new'])],
+            'price' => ['nullable', Rule::in(['under-500', '500-999', '1000-4999', '5000-plus'])],
+            'wishlist' => ['nullable', 'boolean'],
+            'deals' => ['nullable', 'boolean'],
             'stock' => ['nullable', Rule::in(['in-stock'])],
-            'sort' => ['nullable', Rule::in(['featured', 'relevance', 'newest', 'price-low-high', 'price-high-low', 'rating', 'popularity'])],
+            'sort' => ['nullable', Rule::in(['featured', 'relevance', 'newest', 'price-low-high', 'price-high-low', 'name-a-z', 'rating', 'popularity'])],
             'min_price' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'max_price' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'cursor' => ['nullable', 'string', 'max:10000'],
@@ -243,10 +298,8 @@ class StorefrontController extends Controller
     {
         abort_unless($vendor->store_visibility === Vendor::VISIBILITY_PUBLISHED && $vendor->store_status === Vendor::STORE_LIVE, 404);
 
-        $products = $vendor->products()
-            ->with(['category', 'images', 'variants', 'vendor'])
-            ->where('is_published', true)
-            ->whereHas('category', fn ($query) => $query->where('is_active', true))
+        $products = ProductCatalog::marketplaceQuery()
+            ->where('products.vendor_id', $vendor->id)
             ->latest()
             ->paginate(16)
             ->through(fn ($product): array => ProductCatalog::productArray($product));
@@ -256,6 +309,19 @@ class StorefrontController extends Controller
             'products' => $products,
             'isOfficial' => app(OfficialStoreService::class)->isOfficial($vendor),
         ]);
+    }
+
+    public function storesIndex()
+    {
+        $eligibleProducts = ProductCatalog::marketplaceQuery()->select('products.id');
+        $stores = Vendor::query()
+            ->where('store_status', Vendor::STORE_LIVE)
+            ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED)
+            ->whereHas('products', fn ($query) => $query->whereIn('products.id', $eligibleProducts))
+            ->orderBy('store_display_name')
+            ->paginate(24);
+
+        return view('stores.index', ['stores' => $stores]);
     }
 
     public function storeLocation(Request $request): JsonResponse|RedirectResponse
@@ -299,7 +365,7 @@ class StorefrontController extends Controller
         return back()->with('status', 'Delivery location cleared.');
     }
 
-    private function listingData(Request $request, ?string $forcedCategory = null): array
+    private function listingData(Request $request, ?string $forcedCategory = null, bool $dealsOnly = false): array
     {
         $categories = collect(ProductCatalog::categories());
         $categoryModels = Category::query()
@@ -310,7 +376,6 @@ class StorefrontController extends Controller
         $validCategorySlugs = $categoryModels->pluck('slug')->values();
         $categoryCounts = $this->marketplaceCategoryCounts($categoryModels);
         $activeCategories = $categories
-            ->filter(fn (array $category): bool => (int) ($categoryCounts[$category['id']] ?? 0) > 0)
             ->map(fn (array $category): array => array_merge($category, [
                 'product_count' => (int) ($categoryCounts[$category['id']] ?? 0),
             ]))
@@ -335,6 +400,7 @@ class StorefrontController extends Controller
             'category' => $categoryFilter,
             'price' => in_array($request->query('price'), $allowedPrices, true) ? $request->query('price') : null,
             'stock' => in_array($request->query('stock'), $allowedStock, true) ? $request->query('stock') : null,
+            'wishlist' => $request->boolean('wishlist'),
             'sort' => in_array($request->query('sort', 'featured'), $allowedSorts, true) ? $request->query('sort', 'featured') : 'featured',
         ];
         $filters['sort'] = $filters['sort'] === 'name-az' ? 'name-a-z' : $filters['sort'];
@@ -360,6 +426,8 @@ class StorefrontController extends Controller
                 $query->whereIn('products.category_id', $category ? $this->categoryAndDescendantIds($category) : []);
             })
             ->when($filters['stock'] === 'in-stock', fn ($query) => $query->whereHas('variants', fn ($variant) => $variant->where('stock', '>', 0)))
+            ->when($filters['wishlist'], fn ($query) => $query->whereIn('products.slug', session('wishlist', [])))
+            ->when($dealsOnly, fn ($query) => $query->whereColumn('products.mrp', '>', 'products.selling_price'))
             ->when($filters['price'], function ($query, string $price): void {
                 match ($price) {
                     'under-500' => $query->where('products.selling_price', '<', 500),
@@ -417,10 +485,11 @@ class StorefrontController extends Controller
             'stockOptions' => [
                 'in-stock' => 'In Stock',
             ],
-            'heading' => $category?->name ?: 'Shop the Marketplace',
-            'lede' => $category ? 'Browse products in this Sushako marketplace category.' : 'Products from active marketplace sellers, with new discoveries arriving regularly.',
+            'heading' => $filters['wishlist'] ? 'Your Wishlist' : ($dealsOnly ? 'Deals' : ($category?->name ?: 'Shop the Marketplace')),
+            'lede' => $filters['wishlist'] ? 'Your saved products, ready when you are.' : ($dealsOnly ? 'Products with a genuine listed price reduction.' : ($category ? 'Browse products in this Sushako marketplace category.' : 'Products from active marketplace sellers, with new discoveries arriving regularly.')),
             'query' => $filters['q'],
             'forcedCategory' => $forcedCategory,
+            'dealsOnly' => $dealsOnly,
         ];
     }
 
@@ -512,17 +581,8 @@ class StorefrontController extends Controller
 
     private function publicCollectionProducts(ProductCollection $collection): Collection
     {
-        return $collection->products()
-            ->with(['category.parent.parent.parent', 'images', 'variants', 'vendor'])
-            ->where('is_published', true)
-            ->whereIn('seller_status', ['approved', 'active', 'scheduled'])
-            ->whereHas('category', fn ($query) => $query->where('is_active', true))
-            ->whereHas('vendor', fn ($query) => $query
-                ->where('store_status', Vendor::STORE_LIVE)
-                ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
-            ->whereHas('variants')
-            ->where('name', 'not like', '%staging%')
-            ->where('name', 'not like', '%sample%')
+        return ProductCatalog::marketplaceQuery()
+            ->whereIn('products.id', $collection->products()->select('products.id'))
             ->get()
             ->map(fn ($product): array => ProductCatalog::productArray($product));
     }

@@ -38,7 +38,7 @@
         </div>
     </section>
 
-    <section class="site-shell products-browse-layout" data-shop-experience data-server-filtered data-infinite-feed="{{ route('shop.feed') }}" data-infinite-seen="{{ $products->pluck('id')->implode(',') }}">
+    <section class="site-shell products-browse-layout" data-shop-experience data-server-filtered data-infinite-feed="{{ route('shop.feed') }}" data-infinite-category="{{ $filters['category'] }}" data-infinite-deals="{{ $dealsOnly ?? false ? 'true' : 'false' }}" data-infinite-seen="{{ $products->pluck('id')->implode(',') }}" data-infinite-has-more="{{ $products->hasMorePages() ? 'true' : 'false' }}">
         <button class="products-filter-backdrop" type="button" data-products-overlay aria-label="Close panels" hidden></button>
 
         <aside class="products-sidebar" data-mobile-filter-panel aria-label="Product filters">
@@ -198,9 +198,10 @@
                     @endforeach
                 </div>
 
-                <div class="marketplace-feed-status" data-infinite-status aria-live="polite">
-                    <span data-infinite-loading hidden>We're bringing something to you.</span>
-                    <button class="button button--secondary" type="button" data-infinite-load-more>Load more products</button>
+                <div class="marketplace-feed-status" data-infinite-sentinel role="status" aria-live="polite">
+                    <span data-infinite-loading hidden>Loading more products…</span>
+                    <span data-infinite-end @if($products->hasMorePages()) hidden @endif>You’ve reached the end of these results.</span>
+                    <button class="button button--secondary" type="button" data-infinite-retry hidden>Retry loading products</button>
                 </div>
 
                 @if ($products->hasPages())

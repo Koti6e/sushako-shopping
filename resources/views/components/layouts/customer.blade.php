@@ -20,7 +20,9 @@
     $departments = collect(\App\Support\ProductCatalog::departments());
     $storeProducts = \App\Support\ProductCatalog::marketplaceFeed(5);
     $navigationDepartments = $departments;
-    $cartCount = collect(session('cart', []))->sum('quantity');
+    $cart = collect(session('cart', []));
+    $cartCount = $cart->sum('quantity');
+    $cartSubtotal = $cart->sum(fn (array $item): int => (int) ($item['price'] ?? 0) * (int) ($item['quantity'] ?? 0));
     $wishlistCount = count(session('wishlist', []));
     $popularSearches = $storeProducts->pluck('name')->take(5)->values();
     $sellerSearches = \App\Models\Vendor::query()
@@ -213,16 +215,10 @@
                     <span>Track Order</span>
                 </a>
                 <nav class="header-actions" aria-label="Account navigation">
-                @if ($storeProducts->isNotEmpty())
-                    <form method="POST" action="{{ route('wishlist.toggle') }}" data-wishlist-form>
-                        @csrf
-                        <input type="hidden" name="slug" value="{{ $storeProducts->first()['slug'] }}">
-                        <button type="submit" class="header-icon-button" aria-label="Wishlist" title="Wishlist">
-                            <i class="fa-regular fa-heart" aria-hidden="true"></i>
-                            <span class="action-badge" data-wishlist-count>{{ $wishlistCount }}</span>
-                        </button>
-                    </form>
-                @endif
+                <a class="header-icon-button" href="{{ route('shop') }}?wishlist=1" aria-label="Wishlist" title="Wishlist">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <span class="action-badge" data-wishlist-count>{{ $wishlistCount }}</span>
+                </a>
                 <details class="account-dropdown" data-account-dropdown>
                     <summary class="header-icon-button" aria-label="{{ $accountLabel }}" title="{{ $accountLabel }}">
                         <i class="fa-regular fa-user" aria-hidden="true"></i>
@@ -240,7 +236,6 @@
                             @if ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
                                 <a href="{{ route('account.show') }}#addresses"><i class="fa-regular fa-address-book" aria-hidden="true"></i> Saved Addresses</a>
                             @endif
-                            <a href="#notifications"><i class="fa-regular fa-bell" aria-hidden="true"></i> Notifications</a>
                             <a href="{{ $accountHref }}#settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
                             <form method="POST" action="{{ $logoutRoute }}">
                                 @csrf
@@ -323,12 +318,18 @@
         href="https://wa.me/{{ $whatsAppNumber }}?text={{ $whatsAppMessage }}"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Need Help? Chat with us on WhatsApp"
+        aria-label="Chat with Sushako on WhatsApp"
     >
-        <span>Need Help? Chat with us</span>
+        <span>Chat with Sushako</span>
         <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
             <path fill="currentColor" d="M16.02 3.2A12.67 12.67 0 0 0 5.1 22.26L3.2 29l6.9-1.82A12.68 12.68 0 1 0 16.02 3.2Zm0 2.2a10.48 10.48 0 0 1 8.93 15.95 10.47 10.47 0 0 1-13.87 3.74l-.47-.28-4.1 1.08 1.1-4-.31-.5A10.47 10.47 0 0 1 16.02 5.4Zm-4.16 5.5c-.25 0-.64.1-.97.46-.34.37-1.28 1.25-1.28 3.05 0 1.79 1.31 3.53 1.49 3.77.18.24 2.53 4.05 6.25 5.52 3.08 1.22 3.72.98 4.39.92.67-.06 2.16-.88 2.46-1.74.31-.86.31-1.6.22-1.75-.09-.15-.33-.24-.7-.43-.36-.18-2.16-1.06-2.49-1.18-.33-.13-.58-.18-.82.18-.24.37-.94 1.18-1.15 1.43-.21.24-.42.27-.79.09-.36-.18-1.54-.57-2.94-1.82-1.09-.97-1.82-2.17-2.03-2.54-.21-.36-.02-.56.16-.74.16-.16.36-.42.55-.64.18-.21.24-.36.36-.61.12-.24.06-.46-.03-.64-.09-.18-.82-1.98-1.12-2.71-.3-.71-.6-.61-.82-.62h-.74Z"/>
         </svg>
+    </a>
+
+    <a class="cart-float" data-cart-float href="{{ route('cart.empty') }}" @if($cartCount < 1) hidden @endif aria-label="Open cart, {{ $cartCount }} items, total ₹{{ number_format($cartSubtotal) }}">
+        <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+        <span><strong>Cart · <span data-cart-float-count>{{ $cartCount }} {{ $cartCount === 1 ? 'item' : 'items' }}</span></strong><small data-cart-float-subtotal>₹{{ number_format($cartSubtotal) }}</small></span>
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
     </a>
 
     <x-cookie-consent-banner />
@@ -374,104 +375,55 @@
     </script>
 
     <footer class="site-footer" data-surface="customer-footer">
-        <section class="footer-newsletter" aria-label="Stay updated">
-            <div class="site-shell footer-newsletter__inner">
-                <div>
-                    <p class="eyebrow">Stay Updated</p>
-                    <h2>Get New Arrivals, Offers & Store Updates</h2>
-                </div>
-                <form>
-                    <label class="sr-only" for="footer-newsletter-email">Email</label>
-                    <input id="footer-newsletter-email" type="email" placeholder="Email">
-                    <button class="button button--primary" type="submit">Subscribe</button>
-                </form>
-            </div>
-        </section>
         <div class="site-shell store-footer">
             <section class="footer-brand-column">
                 <x-brand.logo context="large" loading="lazy" />
                 <p>A multi-seller marketplace for products from active Sushako stores.</p>
-                <div class="footer-socials" aria-label="Social links">
-                    <a href="#facebook" aria-label="Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
-                    <a href="#instagram" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
-                    <a href="#linkedin" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in" aria-hidden="true"></i></a>
-                    <a href="#youtube" aria-label="YouTube"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>
-                </div>
             </section>
-            <nav aria-label="Store department footer links">
-                <h2><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i> Departments</h2>
+            <nav aria-label="Shop links">
+                <h2>Shop</h2>
+                <a href="{{ route('shop') }}">Products</a>
+                <a href="{{ route('home') }}#categories">Categories</a>
+                <a href="{{ route('shop') }}?shop=new">New Arrivals</a>
+                <a href="{{ route('deals') }}">Deals</a>
+                <a href="{{ route('stores.index') }}">Stores</a>
                 @foreach ($departments->take(6) as $department)
                     <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
                 @endforeach
-                <a href="{{ route('shop') }}?shop=new">New Arrivals</a>
-                <a href="{{ route('shop') }}">View All Categories</a>
             </nav>
-            <nav aria-label="Customer footer links">
-                <h2><i class="fa-regular fa-user" aria-hidden="true"></i> Customer</h2>
-                @guest
-                    <a href="{{ route('orders.track') }}">Track Order</a>
-                @elseif ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
-                    <a href="{{ route('account.show') }}">My Account</a>
-                @elseif ($authUser->hasRole(\App\Models\User::ROLE_SUPER_ADMIN))
-                    <a href="{{ $adminAccessHref }}">Admin Dashboard</a>
-                @endguest
-                @auth
-                    @if ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
-                        <a href="{{ route('orders.track') }}">Orders</a>
-                    @endif
-                @endauth
+            <nav aria-label="Customer links">
+                <h2>Customer</h2>
+                <a href="{{ $authUser?->role === \App\Models\User::ROLE_CUSTOMER ? route('account.show') : route('login') }}">My Sushako</a>
+                <a href="{{ route('orders.track') }}">Track Order</a>
                 <a href="{{ route('shop') }}?wishlist=1">Wishlist</a>
                 <a href="{{ route('cart.empty') }}">Cart</a>
-                @auth
-                    @if ($authUser->role === \App\Models\User::ROLE_CUSTOMER)
-                        <a href="{{ route('checkout') }}#wallet">Wallet</a>
-                        <a href="{{ route('orders.track') }}">Track Order</a>
-                    @endif
-                @endauth
-            </nav>
-            <nav aria-label="Store footer links">
-                <h2><i class="fa-solid fa-store" aria-hidden="true"></i> Sushako Store</h2>
-                <a href="{{ route('shop') }}">All Products</a>
-                @foreach ($departments->take(3) as $department)
-                    <a href="{{ route('department.show', $department['slug']) }}">{{ $department['name'] }}</a>
-                @endforeach
-            </nav>
-            <nav aria-label="Support footer links">
-                <h2><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Support</h2>
-                <a href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode(config('services.whatsapp.support_message')) }}" target="_blank" rel="noopener noreferrer">Contact Us</a>
-                <a href="{{ route('policies.faq') }}">Help Center</a>
+                <a href="{{ route('policies.faq') }}">Help & Support</a>
                 <a href="{{ route('policies.faq') }}">FAQ</a>
-                <a href="{{ route('policies.cookie') }}">Cookie Policy</a>
-                <a href="{{ $adminAccessHref }}">Admin Login</a>
+            </nav>
+            <nav aria-label="Policy links">
+                <h2>Policies</h2>
                 <a href="{{ route('policies.privacy') }}">Privacy Policy</a>
-                <a href="{{ route('policies.terms') }}">Terms & Conditions</a>
-                <a href="{{ route('policies.shipping') }}">Shipping Policy</a>
                 <a href="{{ route('policies.return-refund') }}">Return Policy</a>
                 <a href="{{ route('policies.cancellation') }}">Cancellation Policy</a>
+                <a href="{{ route('policies.cookie') }}">Cookie Policy</a>
+                <a href="{{ route('policies.terms') }}">Terms & Conditions</a>
+                <a href="{{ route('policies.shipping') }}">Shipping / Delivery Policy</a>
+            </nav>
+            <nav aria-label="Support footer links">
+                <h2>Support</h2>
+                <a href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode(config('services.whatsapp.support_message')) }}" target="_blank" rel="noopener noreferrer">WhatsApp Support</a>
+                <a href="{{ route('policies.faq') }}">Frequently Asked Questions</a>
             </nav>
         </div>
         <div class="site-shell footer-trust-row" aria-label="Store trust badges">
-            <span><img src="{{ asset('assets/payments/razorpay.svg') }}" alt="Razorpay"> Secure Payments</span>
-            <span><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Fast Dispatch</span>
-            <span><img src="{{ asset('assets/payments/upi.svg') }}" alt="UPI"> UPI Ready</span>
-            <span><i class="fa-solid fa-flag" aria-hidden="true"></i> Nationwide Delivery</span>
-            <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Support</span>
-            <span><i class="fa-solid fa-star" aria-hidden="true"></i> Sushako Quality</span>
+            <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Secure Payments</span>
+            <span><i class="fa-solid fa-store" aria-hidden="true"></i> Trusted Sellers</span>
+            <span><i class="fa-solid fa-truck" aria-hidden="true"></i> Delivery Support</span>
+            <span><i class="fa-solid fa-route" aria-hidden="true"></i> Order Tracking</span>
+            <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Customer Support</span>
         </div>
         <div class="site-shell footer-bottom">
-            <div class="payment-icons" aria-label="Payment methods">
-                @foreach ([
-                    'razorpay' => 'Razorpay',
-                    'upi' => 'UPI',
-                    'visa' => 'Visa',
-                    'mastercard' => 'Mastercard',
-                    'rupay' => 'RuPay',
-                    'net-banking' => 'Net Banking',
-                ] as $file => $label)
-                    <span><img src="{{ asset('assets/payments/'.$file.'.svg') }}" alt="{{ $label }}"></span>
-                @endforeach
-            </div>
-            <p>&copy; {{ date('Y') }} Sushako Shopping. All Rights Reserved. <span>Powered by Sushako.</span></p>
+            <p>&copy; {{ date('Y') }} Sushako. All rights reserved. <span>Powered by Sushako.</span></p>
         </div>
     </footer>
 </body>

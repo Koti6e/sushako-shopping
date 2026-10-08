@@ -63,6 +63,9 @@ SVG;
             </div>
         @endunless
         <h3><a href="{{ route('products.show', $product['slug']) }}">{{ $product['name'] }}</a></h3>
+        @if ($compact)
+            <p class="product-card__availability">{{ $product['stock_label'] }}</p>
+        @endif
         <div class="product-card__seller product-card__seller--marketplace">
             <span class="product-card__seller-line">
                 <small>Sold by</small>
@@ -93,7 +96,7 @@ SVG;
                 <small>From</small>
             @endif
             <strong>&#8377;{{ number_format($product['selling_price']) }}</strong>
-            @if (! $compact && $product['discount'] > 0)
+            @if ($product['discount'] > 0)
                 <s>&#8377;{{ number_format($product['mrp']) }}</s>
                 <span>{{ $product['discount'] }}% off</span>
             @endif
@@ -113,9 +116,6 @@ SVG;
                 @if ($product['has_custom_options'])
                     <span>{{ $product['option_name'] }}: {{ $product['option_values'][0] ?? $product['sizes'][0] }}</span>
                 @endif
-                @unless ($product['has_colour_options'] || $product['has_size_options'] || $product['has_custom_options'])
-                    <span>{{ $product['fulfillment_scope'] }}</span>
-                @endunless
             </div>
         @endunless
         <div class="product-card__actions">
@@ -130,9 +130,20 @@ SVG;
                         data-size="{{ $product['sizes'][0] }}"
                         data-quantity="1"
                     >
-                        Add to Cart
+                        {!! $bagIcon !!}
+                        <span data-add-to-cart-label>Add to Cart</span>
                     </button>
-                    <button class="button button--secondary" type="button">Buy Now</button>
+                    <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
+                        @csrf
+                        <input type="hidden" name="slug" value="{{ $product['slug'] }}">
+                        <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
+                        <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
+                        <input type="hidden" name="quantity" value="1">
+                        <button class="button button--buy-now" type="submit" data-buy-now-submit>
+                            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                            <span data-buy-now-label>Buy Now</span>
+                        </button>
+                    </form>
                 @else
                     <button
                         class="button button--primary add-to-cart-button"

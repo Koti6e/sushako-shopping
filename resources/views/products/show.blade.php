@@ -95,8 +95,10 @@
                     @elseif ($product['seller_verified'])
                         <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Verified Seller</span>
                     @endif
-                    <span>{{ $product['rating'] }} stars</span>
-                    <span>{{ $product['reviews'] }} reviews</span>
+                    @if ((int) $product['reviews'] > 0)
+                        <span>{{ $product['rating'] }} stars</span>
+                        <span>{{ $product['reviews'] }} reviews</span>
+                    @endif
                     <span>{{ $product['stock_label'] }}</span>
                 </div>
                 <div class="price-row price-row--large">
@@ -236,16 +238,16 @@
             </div>
             <div>
                 <h2>Customer Reviews</h2>
-                @foreach ($product['reviews_list'] as $review)
-                    <blockquote>
-                        <strong>{{ $review['name'] }} · {{ $review['rating'] }} stars</strong>
-                        <p>{{ $review['text'] }}</p>
-                    </blockquote>
-                @endforeach
+                @forelse ($product['reviews_list'] as $review)
+                    <blockquote><strong>{{ $review['name'] }} · {{ $review['rating'] }} stars</strong><p>{{ $review['text'] }}</p></blockquote>
+                @empty
+                    <p>No customer reviews have been added for this product yet.</p>
+                @endforelse
             </div>
             <div>
                 <h2>Delivery Information</h2>
-                <p>Same-day dispatch before 2 PM. Secure prepaid checkout powered by Razorpay. Free shipping above INR 999.</p>
+                <p>{{ $product['delivery_label'] }}. Delivery and order updates are available through order tracking.</p>
+                <a class="product-card__link" href="{{ route('policies.shipping') }}">Shipping and delivery policy</a>
                 <div class="payment-icons payment-icons--light" aria-label="Accepted payment symbols">
                     <span><img src="{{ asset('assets/payments/razorpay.svg') }}" alt="Razorpay"></span>
                     <span><img src="{{ asset('assets/payments/upi.svg') }}" alt="UPI"></span>
@@ -256,7 +258,7 @@
             </div>
             <div>
                 <h2>Return Summary</h2>
-                <p>{{ $product['seller_return_policy'] }}. Sushako protection still applies for wrong, damaged, missing, counterfeit, fraudulent, or undelivered orders.</p>
+                <p>{{ $product['seller_return_policy'] }}</p>
                 <a class="product-card__link" href="{{ route('policies.return-refund') }}">View Full Return Policy</a>
             </div>
         </section>
