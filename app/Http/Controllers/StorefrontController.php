@@ -459,7 +459,7 @@ class StorefrontController extends Controller
         return $ids;
     }
 
-    private function activeFilterChips(array $filters, ?array $category): array
+    private function activeFilterChips(array $filters, ?Category $category): array
     {
         $chips = [];
 
@@ -470,7 +470,7 @@ class StorefrontController extends Controller
             $chips[] = ['key' => 'shop', 'label' => $filters['shop'] === 'new' ? 'New Arrivals' : 'Featured'];
         }
         if ($category) {
-            $chips[] = ['key' => 'category', 'label' => $category['name']];
+            $chips[] = ['key' => 'category', 'label' => $category?->name];
         }
         if ($filters['price']) {
             $labels = [
