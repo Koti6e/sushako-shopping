@@ -2,7 +2,34 @@
     $defaultColour = array_key_first($product['colours']) ?: 'Standard';
     $defaultSize = $product['sizes'][0] ?? 'Standard';
     $defaultPrice = $product['variant_prices'][$defaultSize] ?? $product['selling_price'];
+    $structuredData = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Product',
+        'name' => $product['name'],
+        'description' => $product['full_description'] ?? $product['short_description'] ?? null,
+        'image' => collect($product['images'] ?? [])->pluck('path')->values()->all(),
+        'brand' => ['@type' => 'Brand', 'name' => $product['brand'] ?? 'Sushako'],
+        'offers' => [
+            '@type' => 'Offer',
+            'url' => url()->current(),
+            'priceCurrency' => 'INR',
+            'price' => (string) ($defaultPrice ?? $product['selling_price']),
+            'availability' => ($product['available'] ?? false)
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+            'seller' => [
+                '@type' => 'Organization',
+                'name' => $product['seller_name'] ?? 'Sushako seller',
+            ],
+        ],
+    ];
 @endphp
+
+@push('head')
+    <script type="application/ld+json">
+        {!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+@endpush
 
 <x-layouts.customer title="{{ $product['name'] }} - Sushako Shopping">
     <section class="site-shell product-detail">
@@ -79,8 +106,8 @@
                 </div>
 
                 @if ($product['has_colour_options'])
-                    <fieldset>
-                        <legend>Colour</legend>
+                    <div class="option-group" aria-label="Colour options">
+                        <div class="option-group__label">Colour</div>
                         <div class="swatch-row" data-product-colours>
                             @foreach ($product['colours'] as $colour => $meta)
                                 <label>
@@ -90,12 +117,12 @@
                                 </label>
                             @endforeach
                         </div>
-                    </fieldset>
+                    </div>
                 @endif
 
                 @if ($product['has_custom_options'])
-                    <fieldset>
-                        <legend>{{ $product['option_name'] }}</legend>
+                    <div class="option-group" aria-label="{{ $product['option_name'] }} options">
+                        <div class="option-group__label">{{ $product['option_name'] }}</div>
                         <div class="size-row size-row--storage" data-product-options>
                             @foreach ($product['option_values'] as $option)
                                 <label>
@@ -111,18 +138,18 @@
                                 </label>
                             @endforeach
                         </div>
-                    </fieldset>
+                    </div>
                 @endif
 
                 @if ($product['has_size_options'])
-                    <fieldset>
-                        <legend>Size</legend>
+                    <div class="option-group" aria-label="Size options">
+                        <div class="option-group__label">Size</div>
                         <div class="size-row" data-product-sizes>
                             @foreach ($product['sizes'] as $size)
                                 <label><input type="radio" name="size" value="{{ $size }}" @checked($loop->first)> {{ $size }}</label>
                             @endforeach
                         </div>
-                    </fieldset>
+                    </div>
                 @endif
 
                 <label for="quantity">Quantity</label>

@@ -2,147 +2,122 @@
 
 namespace App\Services;
 
-use App\Models\CommissionRule;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\SellerLedgerEntry;
+use App\Models\SellerPlan;
 use App\Models\Vendor;
+use Illuminate\Support\Facades\DB;
 
 class SellerCommissionService
 {
+    public const CALCULATION_VERSION = 'plan-v2';
+
     public function preview(Vendor $vendor, ?Product $product, int $sellingPrice, int $quantity = 1): array
     {
-        $plan = $this->effectivePlan($vendor);
-
-        if ($plan === Vendor::PLAN_FREE) {
-            $base = $sellingPrice * $quantity;
-            $commission = min($base, $quantity);
-
-            return [
-                'base' => $base,
-                'type' => 'flat_per_unit',
-                'rate' => 1,
-                'commission' => $commission,
-                'platform_fee_per_unit' => 1,
-                'platform_fee_total' => $commission,
-                'eligible_quantity' => $quantity,
-                'seller_earning' => max(0, $base - $commission),
-                'source' => 'free_plan_unit_commission',
-            ];
-        }
-
-        $rule = $this->effectiveRule($vendor, $product);
-        $base = $sellingPrice * $quantity;
-        $commission = $this->commissionAmount($base, $rule['type'], $rule['rate']);
-
-        if ($this->zeroCommission($vendor)) {
-            $commission = 0;
-            $rule = ['type' => 'percentage', 'rate' => 0, 'source' => $vendor->current_plan.'_zero_commission'];
-        }
+        $quantity = max(0, $quantity);
+        $base = max(0, $sellingPrice) * $quantity;
+        $plan = $this->planSnapshot($vendor);
+        $planCode = $this->effectivePlan($vendor);
+        $isUnitFee = in_array($planCode, [Vendor::PLAN_FREE, Vendor::PLAN_STARTER], true);
+        $commission = $isUnitFee ? min($base, $quantity) : 0;
 
         return [
             'base' => $base,
-            'type' => $rule['type'],
-            'rate' => $rule['rate'],
+            'type' => $isUnitFee ? 'flat_per_unit' : 'none',
+            'rate' => $isUnitFee ? 1 : 0,
             'commission' => $commission,
-            'platform_fee_per_unit' => 0,
-            'platform_fee_total' => 0,
+            'platform_fee_per_unit' => $isUnitFee ? 1 : 0,
+            'platform_fee_total' => $commission,
             'eligible_quantity' => $quantity,
             'seller_earning' => max(0, $base - $commission),
-            'source' => $rule['source'],
+            'source' => $planCode === Vendor::PLAN_FREE ? 'free_plan_unit_commission' : $planCode.'_plan',
+            'seller_plan' => $planCode,
+            'seller_plan_version' => (int) ($plan['plan_version'] ?? 1),
+            'commission_calculation_version' => self::CALCULATION_VERSION,
+            'payment_gateway_fee' => 0,
         ];
     }
 
     public function capture(OrderItem $item, Vendor $vendor): void
     {
-        $preview = $this->preview($vendor, $item->product, (int) $item->unit_price, (int) $item->quantity);
+        DB::transaction(function () use ($item, $vendor): void {
+            $item->refresh();
+            $dedupeKey = 'commission:order-item:'.$item->id;
+            $preview = $this->preview($vendor, $item->product, (int) $item->unit_price, (int) $item->quantity);
 
-        $item->forceFill([
-            'vendor_id' => $vendor->id,
-            'seller_plan_at_order' => $this->effectivePlan($vendor),
-            'gross_line_amount' => $preview['base'],
-            'commission_base' => $preview['base'],
-            'commission_type' => $preview['type'],
-            'commission_rate' => $preview['rate'],
-            'commission_amount' => $preview['commission'],
-            'eligible_quantity' => $preview['eligible_quantity'],
-            'platform_fee_per_unit' => $preview['platform_fee_per_unit'],
-            'platform_fee_total' => $preview['platform_fee_total'],
-            'retained_quantity' => $preview['eligible_quantity'],
-            'seller_earning' => $preview['seller_earning'],
-            'commission_rule_source' => $preview['source'],
-            'commission_calculated_at' => now(),
-            'settlement_status' => 'upcoming',
-        ])->save();
+            if (! $item->commission_calculated_at) {
+                $item->forceFill([
+                    'vendor_id' => $vendor->id,
+                    'seller_plan_at_order' => $preview['seller_plan'],
+                    'seller_plan_version_snapshot' => $preview['seller_plan_version'],
+                    'gross_line_amount' => $preview['base'],
+                    'commission_base' => $preview['base'],
+                    'commission_type' => $preview['type'],
+                    'commission_rate' => $preview['rate'],
+                    'commission_rate_snapshot' => $preview['rate'],
+                    'commission_amount' => $preview['commission'],
+                    'eligible_quantity' => $preview['eligible_quantity'],
+                    'platform_fee_per_unit' => $preview['platform_fee_per_unit'],
+                    'platform_fee_total' => $preview['platform_fee_total'],
+                    'retained_quantity' => $preview['eligible_quantity'],
+                    'seller_earning' => $preview['seller_earning'],
+                    'commission_rule_source' => $preview['source'],
+                    'commission_calculation_version' => self::CALCULATION_VERSION,
+                    'commission_calculated_at' => now(),
+                    'settlement_status' => 'upcoming',
+                ])->save();
+            }
 
-        SellerLedgerEntry::query()->create([
-            'vendor_id' => $vendor->id,
-            'order_id' => $item->order_id,
-            'order_item_id' => $item->id,
-            'entry_type' => 'commission_charged',
-            'gross_amount' => $preview['base'],
-            'commission_amount' => $preview['commission'],
-            'net_amount' => $preview['seller_earning'],
-            'status' => 'posted',
-            'reason' => 'Order item commission captured at order time.',
-        ]);
+            SellerLedgerEntry::query()->firstOrCreate(['dedupe_key' => $dedupeKey], [
+                'vendor_id' => $vendor->id,
+                'order_id' => $item->order_id,
+                'order_item_id' => $item->id,
+                'entry_type' => 'commission_charged',
+                'gross_amount' => $item->gross_line_amount ?? $preview['base'],
+                'commission_amount' => $item->commission_amount ?? $preview['commission'],
+                'net_amount' => $item->seller_earning ?? $preview['seller_earning'],
+                'status' => 'posted',
+                'reason' => 'Order item commission captured at order time.',
+            ]);
+        });
     }
 
     public function zeroCommission(Vendor $vendor): bool
     {
-        if ($this->effectivePlan($vendor) === Vendor::PLAN_FREE) {
-            return false;
-        }
-
-        if ($vendor->current_plan === Vendor::PLAN_GROWTH && $vendor->plan_expires_at?->isFuture()) {
-            return true;
-        }
-
-        if ($vendor->current_plan === Vendor::PLAN_ENTERPRISE) {
-            return $vendor->plan_expires_at?->isFuture() || $vendor->grace_ends_at?->isFuture();
-        }
-
-        return false;
+        return $this->effectivePlan($vendor) === Vendor::PLAN_PREMIUM;
     }
 
     public function effectivePlan(Vendor $vendor): string
     {
-        if (in_array($vendor->current_plan, [Vendor::PLAN_GROWTH, Vendor::PLAN_ENTERPRISE], true) && $vendor->plan_expires_at?->isPast() && ! $vendor->grace_ends_at?->isFuture()) {
+        $plan = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: $vendor->selected_plan);
+
+        if ($plan !== Vendor::PLAN_FREE && $vendor->plan_expires_at?->isPast() && ! $vendor->grace_ends_at?->isFuture()) {
             return Vendor::PLAN_FREE;
         }
 
-        return $vendor->current_plan ?: Vendor::PLAN_FREE;
+        return $plan;
     }
 
     public function effectiveRule(Vendor $vendor, ?Product $product = null): array
     {
-        $query = CommissionRule::query()
-            ->where('is_active', true)
-            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()));
+        $preview = $this->preview($vendor, $product, 100, 1);
 
-        foreach ([
-            'product' => fn () => $product ? (clone $query)->where('product_id', $product->id)->first() : null,
-            'seller' => fn () => (clone $query)->where('vendor_id', $vendor->id)->whereNull('product_id')->first(),
-            'category' => fn () => $product ? (clone $query)->where('category_id', $product->category_id)->whereNull('product_id')->whereNull('vendor_id')->first() : null,
-            'plan' => fn () => (clone $query)->where('plan', $vendor->current_plan)->whereNull('product_id')->whereNull('vendor_id')->whereNull('category_id')->first(),
-            'default' => fn () => (clone $query)->whereNull('plan')->whereNull('product_id')->whereNull('vendor_id')->whereNull('category_id')->first(),
-        ] as $source => $resolver) {
-            $rule = $resolver();
-            if ($rule) {
-                return ['type' => $rule->type, 'rate' => (float) $rule->rate, 'source' => $source];
-            }
-        }
-
-        return ['type' => 'percentage', 'rate' => 10.0, 'source' => 'default_platform'];
+        return [
+            'type' => $preview['type'],
+            'rate' => (float) $preview['rate'],
+            'source' => $preview['source'],
+        ];
     }
 
-    private function commissionAmount(int $base, string $type, float $rate): int
+    private function planSnapshot(Vendor $vendor): array
     {
-        if ($type === 'flat') {
-            return min($base, (int) round($rate));
-        }
+        $code = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: $vendor->selected_plan);
+        $plan = SellerPlan::query()->where('business_code', $code)->where('status', SellerPlan::STATUS_ACTIVE)->first();
 
-        return (int) round($base * $rate / 100);
+        return [
+            'business_code' => $code,
+            'plan_version' => $plan?->plan_version ?: 1,
+        ];
     }
 }

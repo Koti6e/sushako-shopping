@@ -17,10 +17,14 @@
                 <h2>Fulfilment</h2>
                 <form class="seller-stack-form" method="POST" action="{{ route('seller.orders.update', $order->order_number) }}">
                     @csrf @method('PUT')
-                    <select name="seller_order_status"><option value="accepted">Accept</option><option value="packed">Packed</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancel</option></select>
-                    <input name="shipping_provider" placeholder="Courier" value="{{ $order->shipping_provider }}">
-                    <input name="tracking_number" placeholder="Tracking number" value="{{ $order->tracking_number }}">
-                    <input name="tracking_url" placeholder="Tracking URL" value="{{ $order->tracking_url }}">
+                    <p class="muted">Seller-controlled fulfilment. The seller will contact the customer to confirm shipping and delivery details.</p>
+                    <select name="seller_order_status"><option value="accepted">Accept</option><option value="processing">Processing</option><option value="contact_customer">Contact Customer</option><option value="shipping_confirmed">Shipping Confirmed</option><option value="packed">Packed</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="delivery_failed">Delivery Failed</option><option value="cancelled">Cancel</option></select>
+                    <input name="shipping_method" placeholder="Seller shipping method" value="{{ $fulfilment?->shipping_method }}">
+                    <input name="shipping_charge" type="number" min="0" placeholder="Shipping charge" value="{{ $fulfilment?->shipping_charge }}">
+                    <input name="expected_delivery_date" type="date" value="{{ $fulfilment?->expected_delivery_date?->format('Y-m-d') }}">
+                    <input name="tracking_number" placeholder="Tracking number" value="{{ $fulfilment?->tracking_number ?: $order->tracking_number }}">
+                    <input name="tracking_url" placeholder="Tracking URL" value="{{ $fulfilment?->tracking_url ?: $order->tracking_url }}">
+                    <textarea name="fulfilment_notes" placeholder="Fulfilment notes">{{ $fulfilment?->fulfilment_notes }}</textarea>
                     <input name="reason" placeholder="Reason for cancellation when applicable">
                     <button>Update Order</button>
                 </form>

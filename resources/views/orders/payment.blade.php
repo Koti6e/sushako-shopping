@@ -2,6 +2,7 @@
     @php
         $razorpayKey = config('services.razorpay.key');
         $codEnabled = (bool) ($codSetting?->enabled ?? true);
+        $codEligible = ($codEligibility['status'] ?? 'ineligible') === 'eligible';
         $razorpayConfigured = (bool) ($razorpaySetting?->enabled ?? false)
             && filled($razorpayKey)
             && filled(config('services.razorpay.secret'))
@@ -54,7 +55,7 @@
                             <i class="fa-solid fa-check" aria-hidden="true"></i>
                         </label>
 
-                        <label class="elite-payment-option" data-payment-option="cod">
+                        <label class="elite-payment-option" data-payment-option="cod" @if (! $codEligible) aria-disabled="true" @endif>
                             <input type="radio" name="payment_choice" value="cod">
                             <span class="elite-payment-option__icon"><i class="fa-solid fa-box" aria-hidden="true"></i></span>
                             <span>
@@ -76,7 +77,7 @@
                         @endunless
                         <button class="button button--primary" id="rzp-button1" type="button" @disabled(! $razorpayConfigured)>
                             <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                            Pay &#8377;{{ number_format($order->total_amount) }} Securely
+                                Pay Securely
                         </button>
                         <small>You'll be redirected to our secure payment partner.</small>
                         <div class="payment-inline-message" data-payment-message hidden></div>
@@ -89,7 +90,7 @@
                         </div>
                         <form method="POST" action="{{ route('order.payment.cod', $order->order_number) }}">
                             @csrf
-                            <button class="button button--primary" type="submit" @disabled(! $codEnabled)>
+                            <button class="button button--primary" type="submit" @disabled(! $codEnabled || ! $codEligible)>
                                 <i class="fa-solid fa-box" aria-hidden="true"></i>
                                 Place Order
                             </button>
@@ -97,6 +98,8 @@
                         <small>No online payment required.</small>
                         @unless ($codEnabled)
                             <div class="payment-warning">Cash on Delivery is currently disabled in admin payment settings.</div>
+                        @elseif (! $codEligible)
+                            <div class="payment-warning">{{ $codEligibility['reason'] ?? 'Cash on Delivery is unavailable for this order.' }}</div>
                         @endunless
                     </section>
                 </main>

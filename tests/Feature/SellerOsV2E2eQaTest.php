@@ -403,8 +403,8 @@ class SellerOsV2E2eQaTest extends TestCase
             ->assertSee('Razorpay checkout')
             ->assertSee('Payment gateway charges (Razorpay) apply separately to online transactions on all plans.')
             ->assertSee('Sushako Branding')
-            ->assertSee('Sushako Labelling')
-            ->assertSee('Own Branding Label');
+            ->assertSee('Seller Branding &amp; Labelling', false)
+            ->assertDontSee('Own Branding Label');
         $this->post(route('seller.plans.renew'), ['plan' => Vendor::PLAN_FREE])->assertRedirect();
         $this->assertSame(Vendor::PLAN_FREE, $vendor->fresh()->current_plan);
 

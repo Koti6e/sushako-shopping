@@ -59,6 +59,9 @@ class ProductController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
         $data = $this->validated($request, $vendor);
+        if (in_array($data['seller_status'], ['active', 'approved'], true)) {
+            $accounts->assertProductCapacity($vendor);
+        }
         $status = $this->publishableStatus($vendor, $data['seller_status']);
         if (($data['go_live_mode'] ?? 'publish_now') === 'schedule') {
             $status = Product::SELLER_STATUS_SCHEDULED;
@@ -113,6 +116,9 @@ class ProductController extends Controller
         $vendor = $request->attributes->get('vendor');
         $this->authorizeProduct($vendor, $product);
         $data = $this->validated($request, $vendor, $product);
+        if (in_array($data['seller_status'], ['active', 'approved'], true) && $product->seller_status !== Product::SELLER_STATUS_ACTIVE) {
+            $accounts->assertProductCapacity($vendor, $product->id);
+        }
         $status = $this->publishableStatus($vendor, $data['seller_status'], $product);
         if (($data['go_live_mode'] ?? 'publish_now') === 'schedule') {
             $status = Product::SELLER_STATUS_SCHEDULED;
@@ -259,14 +265,6 @@ class ProductController extends Controller
 
         if ($requested !== Product::SELLER_STATUS_ACTIVE) {
             return $requested;
-        }
-
-        if ($vendor->current_plan === Vendor::PLAN_GROWTH) {
-            $activeCount = $vendor->products()->where('seller_status', Product::SELLER_STATUS_ACTIVE)->when($product, fn ($query) => $query->whereKeyNot($product->id))->count();
-
-            if ($activeCount >= 100) {
-                return Product::SELLER_STATUS_DRAFT;
-            }
         }
 
         return Product::SELLER_STATUS_ACTIVE;

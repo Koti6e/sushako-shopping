@@ -170,7 +170,7 @@ class SellerPlatformTest extends TestCase
 
         app(SellerAccountService::class)->activatePlan($vendor, Vendor::PLAN_GROWTH, 'manual-test');
         $paidPreview = app(SellerCommissionService::class)->preview($vendor->fresh(), $product, 1000, 2);
-        $this->assertSame(0, $paidPreview['commission']);
+        $this->assertSame(2, $paidPreview['commission']);
     }
 
     public function test_platform_fee_is_one_rupee_per_eligible_product_quantity(): void
@@ -194,7 +194,7 @@ class SellerPlatformTest extends TestCase
         $service = app(SellerCommissionService::class);
 
         $vendor->forceFill(['current_plan' => Vendor::PLAN_GROWTH, 'plan_expires_at' => now()->addDay()])->save();
-        $this->assertSame(0, $service->preview($vendor->fresh(), null, 1000, 3)['platform_fee_total']);
+        $this->assertSame(3, $service->preview($vendor->fresh(), null, 1000, 3)['platform_fee_total']);
 
         $vendor->forceFill(['current_plan' => Vendor::PLAN_GROWTH, 'plan_expires_at' => now()->subDay(), 'grace_ends_at' => null])->save();
         $this->assertSame(3, $service->preview($vendor->fresh(), null, 1000, 3)['platform_fee_total']);

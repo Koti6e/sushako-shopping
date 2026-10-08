@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\CategoryReconciliationRun;
+use App\Services\CategoryReconciliationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -104,23 +106,27 @@ class AdminCategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        if ($category->products()->exists()) {
-            return back()->withErrors([
-                'category' =>
-                    'Move or delete products in this category before deleting it.',
-            ]);
-        }
+        $category->forceFill(['is_active' => false, 'available_to_sellers' => false])->save();
 
-        if ($category->children()->exists()) {
-            return back()->withErrors([
-                'category' =>
-                    'Delete or move child categories before deleting this category.',
-            ]);
-        }
+        return back()->with('status', 'Category archived. Existing products and history were preserved.');
+    }
 
-        $category->delete();
+    public function reconciliationDryRun(Request $request, CategoryReconciliationService $reconciliation): View
+    {
+        $run = $reconciliation->dryRun($request->user()->id);
+        return view('admin.operations.category-reconciliation', ['run' => $run->load('items')]);
+    }
 
-        return back()->with('status', 'Category deleted.');
+    public function reconciliationApprove(Request $request, CategoryReconciliationRun $run, CategoryReconciliationService $reconciliation): RedirectResponse
+    {
+        $reconciliation->approve($run, $request->user()->id);
+        return back()->with('status', 'Category reconciliation dry-run approved.');
+    }
+
+    public function reconciliationApply(Request $request, CategoryReconciliationRun $run, CategoryReconciliationService $reconciliation): RedirectResponse
+    {
+        $reconciliation->apply($run, $request->user()->id);
+        return back()->with('status', 'Approved category reconciliation applied safely.');
     }
 
     private function validated(Request $request, ?Category $category = null): array

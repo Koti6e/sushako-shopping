@@ -4,6 +4,12 @@ const miniCartItems = document.querySelector('[data-mini-cart-items]');
 const miniCartSubtotal = document.querySelector('[data-mini-cart-subtotal]');
 const toast = document.querySelector('[data-toast]');
 
+if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+    }, { once: true });
+}
+
 function hidePageLoader() {
     document.documentElement.classList.remove('page-loading', 'page-transitioning');
     document.body?.classList.add('page-ready');
@@ -1164,6 +1170,58 @@ function initShopFilters() {
     apply();
 }
 
+function initMarketplaceInfiniteScroll() {
+    const shop = document.querySelector('[data-infinite-feed]');
+    const grid = shop?.querySelector('[data-product-grid]');
+    const sentinel = shop?.querySelector('[data-infinite-load-more]');
+    const loading = shop?.querySelector('[data-infinite-loading]');
+    if (!shop || !grid || !sentinel || sentinel.dataset.ready === 'true') return;
+
+    sentinel.dataset.ready = 'true';
+    let cursor = btoa(JSON.stringify({
+        seen: (shop.dataset.infiniteSeen || '').split(',').filter(Boolean).map(Number),
+    }));
+    let busy = false;
+    let hasMore = true;
+
+    const load = async () => {
+        if (busy || !hasMore) return;
+        busy = true;
+        sentinel.disabled = true;
+        loading.hidden = false;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            params.set('cursor', cursor);
+            params.set('limit', '12');
+            const response = await fetch(`${shop.dataset.infiniteFeed}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('Marketplace feed unavailable');
+            const data = await response.json();
+            if (data.html) grid.insertAdjacentHTML('beforeend', data.html);
+            cursor = data.next_cursor || cursor;
+            hasMore = Boolean(data.has_more);
+            sentinel.hidden = !hasMore;
+            if (!hasMore) loading.textContent = 'You’ve reached the end of the marketplace.';
+        } catch (error) {
+            loading.textContent = 'Unable to load more products. Please try again.';
+            sentinel.disabled = false;
+        } finally {
+            busy = false;
+            sentinel.disabled = !hasMore;
+            loading.hidden = hasMore;
+        }
+    };
+
+    sentinel.addEventListener('click', load);
+    if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && load()), { rootMargin: '480px' });
+        observer.observe(sentinel);
+    }
+}
+
 document.addEventListener('keydown', (event) => {
     const adminSidebar = document.querySelector('[data-admin-sidebar].is-open');
 
@@ -1620,6 +1678,7 @@ initHeroCarousel();
 initProductGallery();
 initWhatsappPulse();
 initShopFilters();
+initMarketplaceInfiniteScroll();
 initRotatingSearchPlaceholder();
 initStorefrontReveal();
 initCustomerManagement();

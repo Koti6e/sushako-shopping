@@ -23,6 +23,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Category extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'available_to_sellers' => 'boolean',
+            'is_master' => 'boolean',
+            'needs_review' => 'boolean',
+        ];
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
@@ -45,11 +55,4 @@ class Category extends Model
         return $this->hasMany(Product::class);
     }
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-            'available_to_sellers' => 'boolean',
-        ];
-    }
 }

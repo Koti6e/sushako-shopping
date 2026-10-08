@@ -306,6 +306,40 @@ class CheckoutFlowTest extends TestCase
             ->assertSee('Download Invoice');
     }
 
+    public function test_razorpay_webhook_verifies_amount_and_is_idempotent(): void
+    {
+        config(['services.razorpay.webhook_secret' => 'webhook-secret', 'services.razorpay.currency' => 'INR']);
+        $customer = $this->customer();
+        $order = $this->orderFor($customer, [
+            'order_number' => 'SS'.now()->format('Ym').'00002',
+            'status' => 'payment_pending',
+            'payment_method' => 'unselected',
+            'payment_status' => 'pending',
+            'razorpay_order_id' => 'order_webhook_1',
+        ]);
+        $payload = json_encode(['id' => 'evt_webhook_1', 'event' => 'payment.captured', 'payload' => ['payment' => ['entity' => ['id' => 'pay_webhook_1', 'order_id' => 'order_webhook_1', 'amount' => 100000, 'currency' => 'INR']]]], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'webhook-secret');
+
+        $server = ['HTTP_X_RAZORPAY_SIGNATURE' => $signature, 'HTTP_X_RAZORPAY_EVENT_ID' => 'evt_webhook_1', 'CONTENT_TYPE' => 'application/json'];
+        $this->call('POST', route('webhooks.razorpay'), [], [], [], $server, $payload)->assertOk();
+        $this->call('POST', route('webhooks.razorpay'), [], [], [], $server, $payload)->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->payment_status);
+        $this->assertSame(1, \App\Models\PaymentWebhookEvent::query()->where('event_id', 'evt_webhook_1')->count());
+    }
+
+    public function test_razorpay_webhook_rejects_amount_mismatch(): void
+    {
+        config(['services.razorpay.webhook_secret' => 'webhook-secret', 'services.razorpay.currency' => 'INR']);
+        $customer = $this->customer();
+        $this->orderFor($customer, ['order_number' => 'SS'.now()->format('Ym').'00003', 'status' => 'payment_pending', 'payment_method' => 'unselected', 'payment_status' => 'pending', 'razorpay_order_id' => 'order_webhook_2']);
+        $payload = json_encode(['id' => 'evt_webhook_2', 'event' => 'payment.captured', 'payload' => ['payment' => ['entity' => ['id' => 'pay_webhook_2', 'order_id' => 'order_webhook_2', 'amount' => 1, 'currency' => 'INR']]]], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'webhook-secret');
+
+        $this->call('POST', route('webhooks.razorpay'), [], [], [], ['HTTP_X_RAZORPAY_SIGNATURE' => $signature, 'CONTENT_TYPE' => 'application/json'], $payload)->assertStatus(422);
+        $this->assertDatabaseHas('payment_webhook_events', ['event_id' => 'evt_webhook_2', 'status' => 'failed']);
+    }
+
     public function test_invoice_pdf_downloads_for_placed_orders(): void
     {
         $customer = $this->customer();

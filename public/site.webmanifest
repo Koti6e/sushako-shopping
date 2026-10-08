@@ -3,6 +3,7 @@
   "short_name": "Sushako",
   "description": "Sushako Shopping marketplace",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fffdf8",
   "theme_color": "#0e2038",

@@ -5,9 +5,9 @@
     $pendingPlan = in_array($vendor->payment_status, [Vendor::PAYMENT_PENDING, Vendor::PAYMENT_FAILED], true) ? ($vendor->selected_plan_slug ?: $vendor->selected_plan) : null;
     $remainingDays = $vendor->plan_expires_at ? max(0, now()->startOfDay()->diffInDays($vendor->plan_expires_at->copy()->startOfDay(), false)) : null;
     $brandingByPlan = [
-        Vendor::PLAN_FREE => ['label' => 'Sushako Branding', 'feature' => 'Sushako-branded labels', 'note' => 'Sushako platform branding remains visible on supported seller and customer commerce surfaces.'],
-        Vendor::PLAN_GROWTH => ['label' => 'Sushako Labelling', 'feature' => 'Sushako labelling', 'note' => 'Growth keeps Sushako platform labelling and does not include own-brand labels.'],
-        Vendor::PLAN_ENTERPRISE => ['label' => 'Own Branding Label', 'feature' => 'Own branding labels', 'note' => 'Enterprise can use the seller business branding on supported labels.'],
+        Vendor::PLAN_FREE => ['label' => 'Sushako Branding & Labelling', 'feature' => 'Sushako-branded labels', 'note' => 'Free sellers use Sushako branding and labelling on supported commerce surfaces.'],
+        Vendor::PLAN_STARTER => ['label' => 'Seller Branding & Labelling', 'feature' => 'Seller-owned branding and labelling', 'note' => 'Starter sellers can use their own branding and labelling on supported commerce surfaces.'],
+        Vendor::PLAN_PREMIUM => ['label' => 'Seller Branding & Labelling', 'feature' => 'Seller-owned branding and labelling', 'note' => 'Premium sellers can use their own branding and labelling on supported commerce surfaces.'],
     ];
     $gatewayNotice = 'Payment gateway charges (Razorpay) apply separately to online transactions on all plans.';
 @endphp
@@ -50,7 +50,7 @@
                     $productLimit = $plan['product_limit'] ?? 'Unlimited';
                     $orderLimit = $plan['order_limit'] ?? 'Unlimited';
                     $ctaText = $isPending ? 'Continue Payment' : ($isCurrent ? 'Renew Plan' : 'Select & Pay');
-                    $branding = $brandingByPlan[$slug] ?? $brandingByPlan[Vendor::PLAN_FREE];
+                    $branding = $brandingByPlan[Vendor::canonicalPlan($slug)] ?? $brandingByPlan[Vendor::PLAN_FREE];
                 @endphp
 
                 <article @class(['seller-plan-option-card', 'is-current' => $isCurrent, 'is-pending' => $isPending, 'is-featured' => $slug === Vendor::PLAN_GROWTH])>

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['order_number', 'invoice_number', 'invoice_sequence', 'invoiced_at', 'user_id', 'customer_name', 'customer_phone', 'customer_email', 'address_line_1', 'address_line_2', 'city', 'pincode', 'landmark', 'delivery_location_url', 'delivery_latitude', 'delivery_longitude', 'location_confirmed', 'location_captured_at', 'location_updated_by', 'location_capture_method', 'subtotal', 'shipping_amount', 'shipping_status', 'tax_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'discount_amount', 'total_amount', 'status', 'seller_order_status', 'seller_acceptance_due_at', 'seller_accepted_at', 'seller_overdue_at', 'customer_overdue_choice', 'customer_overdue_choice_at', 'payment_method', 'payment_status', 'shipping_provider', 'shipping_provider_other', 'tracking_number', 'tracking_url', 'razorpay_order_id', 'razorpay_payment_id', 'placed_at', 'packed_at', 'shipped_at', 'delivered_at', 'cancelled_at', 'cancellation_reason'])]
+#[Fillable(['order_number', 'invoice_number', 'invoice_sequence', 'invoiced_at', 'user_id', 'customer_name', 'customer_phone', 'customer_email', 'address_line_1', 'address_line_2', 'city', 'pincode', 'landmark', 'delivery_location_url', 'delivery_latitude', 'delivery_longitude', 'location_confirmed', 'location_captured_at', 'location_updated_by', 'location_capture_method', 'subtotal', 'shipping_amount', 'shipping_status', 'tax_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'discount_amount', 'total_amount', 'status', 'seller_order_status', 'seller_acceptance_due_at', 'seller_accepted_at', 'seller_overdue_at', 'customer_overdue_choice', 'customer_overdue_choice_at', 'payment_method', 'payment_status', 'payment_verified_at', 'payment_webhook_event_id', 'shipping_provider', 'shipping_provider_other', 'tracking_number', 'tracking_url', 'razorpay_order_id', 'razorpay_payment_id', 'placed_at', 'packed_at', 'shipped_at', 'delivered_at', 'cancelled_at', 'cancellation_reason'])]
 class Order extends Model
 {
     use HasFactory;
@@ -34,6 +34,11 @@ class Order extends Model
         return $this->hasMany(OrderStatusEvent::class);
     }
 
+    public function vendorFulfilments(): HasMany
+    {
+        return $this->hasMany(OrderVendorFulfilment::class);
+    }
+
     public function latestShippingLabel(): HasOne
     {
         return $this->hasOne(ShippingLabel::class)->latest();
@@ -56,6 +61,10 @@ class Order extends Model
             'location_captured_at' => 'datetime',
             'delivery_latitude' => 'decimal:7',
             'delivery_longitude' => 'decimal:7',
+            'cod_eligibility_status' => 'string',
+            'fulfilment_mode' => 'string',
+            'fulfilment_policy_version' => 'string',
+            'payment_verified_at' => 'datetime',
         ];
     }
 }

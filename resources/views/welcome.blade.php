@@ -1,46 +1,47 @@
 <x-layouts.customer title="Sushako Shopping">
-    <section class="premium-hero-carousel storefront-carousel marketplace-content-carousel" data-hero-carousel aria-label="Marketplace highlights">
-        <div class="hero-carousel__track">
-            @forelse ($heroContent as $content)
-                <article class="hero-carousel__slide marketplace-content-hero @if ($loop->first) is-active @endif" data-hero-slide>
-                    @if ($content['image'])
-                        <img src="{{ $content['image'] }}" alt="{{ $content['title'] }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+    <section class="site-shell section-block marketplace-hero" aria-label="Marketplace hero">
+        <div class="marketplace-hero__panel">
+            <div class="marketplace-hero__copy">
+                <p class="eyebrow">Verified sellers · Live stock</p>
+                <h1>Shop Local. Shop Smart. Shop Sushako.</h1>
+                <p class="lede">Discover everyday essentials, trusted local stores, and products that are already live in the marketplace.</p>
+                <div class="hero-carousel__actions">
+                    <a class="button button--primary" href="{{ route('shop') }}">Shop the Marketplace</a>
+                    <a class="button button--ghost" href="{{ route('search') }}">Explore Finds</a>
+                </div>
+            </div>
+
+            @if ($heroContent->isNotEmpty())
+                @php($hero = $heroContent->first())
+                <div class="marketplace-hero__feature">
+                    @if ($hero['image'])
+                        <img src="{{ $hero['image'] }}" alt="{{ $hero['title'] }}" loading="eager">
                     @else
                         <div class="marketplace-content-no-preview"><i class="fa-regular fa-image" aria-hidden="true"></i> No Preview Available</div>
                     @endif
-                    <div class="site-shell hero-carousel__content">
-                        <p class="eyebrow">Sushako Marketplace</p>
-                        <h1>{{ $content['title'] }}</h1>
-                        @if ($content['subtitle'])
-                            <p>{{ $content['subtitle'] }}</p>
+                    <div>
+                        <p class="eyebrow">Featured</p>
+                        <h2>{{ $hero['title'] }}</h2>
+                        @if ($hero['subtitle'])
+                            <p>{{ $hero['subtitle'] }}</p>
                         @endif
-                        @if ($content['destination'] && $content['cta_label'])
-                            <div class="hero-carousel__actions">
-                                <a class="button button--primary" href="{{ $content['destination'] }}">{{ $content['cta_label'] }}</a>
-                            </div>
+                        @if ($hero['destination'] && $hero['cta_label'])
+                            <a href="{{ $hero['destination'] }}">{{ $hero['cta_label'] }}</a>
                         @endif
                     </div>
-                </article>
-            @empty
-                <article class="hero-carousel__slide marketplace-content-hero is-active" data-hero-slide>
-                    <div class="marketplace-content-no-preview"><i class="fa-regular fa-image" aria-hidden="true"></i> No Preview Available</div>
-                    <div class="site-shell hero-carousel__content">
-                        <p class="eyebrow">Sushako Marketplace</p>
-                        <h1>Marketplace content is being prepared.</h1>
-                        <a class="button button--primary" href="{{ route('shop') }}">Browse Products</a>
-                    </div>
-                </article>
-            @endforelse
+                </div>
+            @endif
         </div>
-        @if ($heroContent->count() > 1)
-            <button class="hero-carousel__arrow hero-carousel__arrow--prev" type="button" data-hero-prev aria-label="Previous banner">‹</button>
-            <button class="hero-carousel__arrow hero-carousel__arrow--next" type="button" data-hero-next aria-label="Next banner">›</button>
-            <div class="hero-carousel__dots" role="tablist" aria-label="Hero banner navigation">
-                @foreach ($heroContent as $content)
-                    <button type="button" class="@if ($loop->first) is-active @endif" data-hero-dot="{{ $loop->index }}" aria-label="Show {{ $content['title'] }}"></button>
-                @endforeach
-            </div>
-        @endif
+
+        <div class="marketplace-hero__showcase" aria-label="Live marketplace picks">
+            @foreach ($products->take(3) as $product)
+                <a class="marketplace-hero__tile" href="{{ route('products.show', $product['slug']) }}">
+                    <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name'].' front view'" />
+                    <span>{{ $product['name'] }}</span>
+                    <strong>₹{{ number_format($product['selling_price']) }}</strong>
+                </a>
+            @endforeach
+        </div>
     </section>
 
     @if ($announcements->isNotEmpty())
@@ -61,23 +62,17 @@
 
     <section class="site-shell section-block section-block--storefront" id="categories">
         <div class="section-heading section-heading--editorial">
-            <div><p class="eyebrow">Marketplace Catalog</p><h2>Shop by Category</h2></div>
-            <a href="{{ route('shop') }}">View All Categories</a>
+            <div><p class="eyebrow">Marketplace</p><h2>Browse by Category</h2></div>
+            <a href="{{ route('shop') }}">View All Products</a>
         </div>
-        <div class="category-grid category-grid--compact">
+
+        <nav class="category-pills" aria-label="Marketplace categories">
             @forelse ($activeCategories as $category)
-                <a class="category-card category-card--compact" href="{{ route('category.show', $category['slug']) }}">
-                    @if ($category['image'])
-                        <img src="{{ $category['image'] }}" alt="{{ $category['name'] }} category" loading="lazy">
-                    @else
-                        <span class="category-card__no-preview"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
-                    @endif
-                    <span>{{ $category['name'] }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </a>
+                <a class="category-pill" href="{{ route('category.show', $category['slug']) }}">{{ $category['name'] }}</a>
             @empty
-                <x-ui.empty-state title="Categories are being prepared" description="Available marketplace categories will appear here." />
+                <span class="category-pill category-pill--muted">Categories are being prepared</span>
             @endforelse
-        </div>
+        </nav>
     </section>
 
     @foreach ($collectionSections as $section)
@@ -102,7 +97,7 @@
 
     <section class="site-shell section-block section-block--storefront available-products-section">
         <div class="section-heading section-heading--editorial">
-            <div><p class="eyebrow">Marketplace Products</p><h2>Explore active listings</h2></div>
+            <div><p class="eyebrow">Marketplace Products</p><h2>Fresh picks from live sellers</h2></div>
             <a href="{{ route('shop') }}">View All Products</a>
         </div>
         <div class="product-grid product-grid--compact product-grid--available">

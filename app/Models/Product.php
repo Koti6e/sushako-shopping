@@ -80,6 +80,8 @@ class Product extends Model
         return [
             'rating' => 'float',
             'is_published' => 'boolean',
+            'cod_enabled' => 'boolean',
+            'needs_category_review' => 'boolean',
             'is_new' => 'boolean',
             'is_best_seller' => 'boolean',
             'local_delivery' => 'boolean',

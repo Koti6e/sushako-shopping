@@ -72,6 +72,7 @@
                     @foreach ($orders as $order)
                         @php
                             $status = $order->status;
+                            $sellerStatusLabel = str($order->seller_order_status ?: 'new')->replace('_', ' ')->title();
                             $isException = array_key_exists($status, $exceptionLabels);
                             $sellerNames = $order->items->pluck('vendor.store_display_name')->filter()->unique()->values();
                             $sellerCities = $order->items->pluck('vendor.city')->filter()->unique()->values();
@@ -124,7 +125,7 @@
                                 <section>
                                     <h3>Delivery</h3>
                                     <p>{{ $order->customer_name }} · {{ $order->city }} - {{ $order->pincode }}</p>
-                                    <small>{{ $order->shipping_provider ? str($order->shipping_provider)->title() : 'Manual shipment updates' }}{{ $order->tracking_number ? ' · '.$order->tracking_number : '' }}</small>
+                                    <small>Seller fulfilment: {{ $sellerStatusLabel }} · {{ $order->shipping_provider ? str($order->shipping_provider)->title() : 'Seller will contact you to confirm shipping' }}{{ $order->tracking_number ? ' · '.$order->tracking_number : '' }}</small>
                                 </section>
                                 <section>
                                     <h3>Payment</h3>

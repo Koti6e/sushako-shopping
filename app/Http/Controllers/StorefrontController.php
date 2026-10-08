@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class StorefrontController extends Controller
 {
@@ -91,11 +92,34 @@ class StorefrontController extends Controller
 
     public function search(Request $request)
     {
-        $query = $request->string('q')->toString();
-
         return view('shop.index', array_merge($this->listingData($request), [
             'title' => 'Search - Sushako Shopping',
         ]));
+    }
+
+    public function feed(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'category' => ['nullable', 'string', 'max:160'],
+            'seller' => ['nullable', 'integer', 'min:1'],
+            'brand' => ['nullable', 'string', 'max:120'],
+            'stock' => ['nullable', Rule::in(['in-stock'])],
+            'sort' => ['nullable', Rule::in(['featured', 'relevance', 'newest', 'price-low-high', 'price-high-low', 'rating', 'popularity'])],
+            'min_price' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'max_price' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'cursor' => ['nullable', 'string', 'max:10000'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:36'],
+        ]);
+        $result = ProductCatalog::discoveryFeed($data, $data['cursor'] ?? null, (int) ($data['limit'] ?? 12));
+        $html = $result['products']->map(fn (array $product): string => view('components.product.card', ['product' => $product, 'compact' => true])->render())->implode('');
+
+        return response()->json([
+            'products' => $result['products'],
+            'html' => $html,
+            'has_more' => $result['has_more'],
+            'next_cursor' => $result['next_cursor'],
+        ]);
     }
 
     public function suggestions(Request $request): JsonResponse
@@ -293,14 +317,22 @@ class StorefrontController extends Controller
             ->values();
 
         $allowedShop = ['all', 'featured', 'new'];
-        $allowedPrices = ['under-500', '500-999', '1000-4999', '5000-plus'];
+        $under500 = 'under-500';
+        $price500To999 = '500-999';
+        $price1000To4999 = '1000-4999';
+        $price5000Plus = '5000-plus';
+        $allowedPrices = [$under500, $price500To999, $price1000To4999, $price5000Plus];
         $allowedStock = ['in-stock'];
         $allowedSorts = ['featured', 'newest', 'price-low-high', 'price-high-low', 'name-a-z', 'name-az'];
+
+        $requestedCategory = $request->query('category');
+        $validCategory = in_array($requestedCategory, $validCategorySlugs->all(), true) ? $requestedCategory : null;
+        $categoryFilter = $forcedCategory ?: $validCategory;
 
         $filters = [
             'q' => trim($request->string('q')->toString()),
             'shop' => in_array($request->query('shop', 'all'), $allowedShop, true) ? $request->query('shop', 'all') : 'all',
-            'category' => $forcedCategory ?: (in_array($request->query('category'), $validCategorySlugs->all(), true) ? $request->query('category') : null),
+            'category' => $categoryFilter,
             'price' => in_array($request->query('price'), $allowedPrices, true) ? $request->query('price') : null,
             'stock' => in_array($request->query('stock'), $allowedStock, true) ? $request->query('stock') : null,
             'sort' => in_array($request->query('sort', 'featured'), $allowedSorts, true) ? $request->query('sort', 'featured') : 'featured',
@@ -427,17 +459,6 @@ class StorefrontController extends Controller
         return $ids;
     }
 
-    private function matchesPriceRange(int $price, string $range): bool
-    {
-        return match ($range) {
-            'under-500' => $price < 500,
-            '500-999' => $price >= 500 && $price <= 999,
-            '1000-4999' => $price >= 1000 && $price <= 4999,
-            '5000-plus' => $price >= 5000,
-            default => true,
-        };
-    }
-
     private function activeFilterChips(array $filters, ?array $category): array
     {
         $chips = [];
@@ -470,8 +491,9 @@ class StorefrontController extends Controller
     private function locationLabel(array $data): string
     {
         $manual = collect([$data['area'] ?? null, $data['city'] ?? null, $data['pincode'] ?? null])->filter()->join(', ');
+        $defaultLocation = $data['source'] === 'gps' ? 'Current Location' : 'Selected Location';
 
-        return $manual ?: ($data['source'] === 'gps' ? 'Current Location' : 'Selected Location');
+        return $manual ?: $defaultLocation;
     }
 
     private function contentData(MarketingContent $content): array

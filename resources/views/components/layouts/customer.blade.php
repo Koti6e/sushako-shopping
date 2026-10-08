@@ -48,13 +48,15 @@
     <meta property="og:image" content="{{ asset('assets/brand/sushako-shopping-official-full.png') }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="{{ url()->current() }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-official-favicon-32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-official-favicon-16.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-official-apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" type="image/webp">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-74005d7c17d4a02f2f25404ec0655d9bc2fdaa53166874c87d7b7eec69d9088a" crossorigin="anonymous" referrerpolicy="no-referrer">
     <title>{{ $title ?? 'Sushako Shopping' }}</title>
+    @stack('head')
     <script>
         document.documentElement.classList.add('page-loading');
         window.sushakoPageReady = function () {
@@ -230,7 +232,7 @@
                             <a href="{{ route('orders.track') }}"><i class="fa-solid fa-route" aria-hidden="true"></i> Track Order</a>
                             <a href="{{ route('shop') }}?wishlist=1"><i class="fa-regular fa-heart" aria-hidden="true"></i> Wishlist</a>
                             <a href="{{ route('seller.login') }}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> Become Seller</a>
-                            <a href="#help"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help</a>
+                            <a href="{{ route('policies.faq') }}"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help</a>
                         @else
                             <a href="{{ $accountHref }}"><i class="fa-regular fa-user" aria-hidden="true"></i> {{ $authUser->hasRole(\App\Models\User::ROLE_SUPER_ADMIN) ? 'Dashboard' : 'My Account' }}</a>
                             <a href="{{ route('orders.track') }}"><i class="fa-solid fa-box" aria-hidden="true"></i> Orders</a>
@@ -287,7 +289,7 @@
 
     <x-mobile-bottom-nav />
 
-    <div class="toast" data-toast role="status" aria-live="polite">Added to Cart</div>
+    <output class="toast" data-toast aria-live="polite">Added to Cart</output>
 
     <aside class="mini-cart" data-mini-cart aria-hidden="true">
         <div class="mini-cart__overlay" data-cart-close></div>
@@ -436,16 +438,16 @@
             </nav>
             <nav aria-label="Support footer links">
                 <h2><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Support</h2>
-                <a href="#contact">Contact Us</a>
-                <a href="#help">Help Center</a>
-                <a href="#faq">FAQ</a>
+                <a href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode(config('services.whatsapp.support_message')) }}" target="_blank" rel="noopener noreferrer">Contact Us</a>
+                <a href="{{ route('policies.faq') }}">Help Center</a>
+                <a href="{{ route('policies.faq') }}">FAQ</a>
                 <a href="{{ route('policies.cookie') }}">Cookie Policy</a>
                 <a href="{{ $adminAccessHref }}">Admin Login</a>
-                <a href="#privacy">Privacy Policy</a>
-                <a href="#terms">Terms & Conditions</a>
-                <a href="#shipping">Shipping Policy</a>
+                <a href="{{ route('policies.privacy') }}">Privacy Policy</a>
+                <a href="{{ route('policies.terms') }}">Terms & Conditions</a>
+                <a href="{{ route('policies.shipping') }}">Shipping Policy</a>
                 <a href="{{ route('policies.return-refund') }}">Return Policy</a>
-                <a href="#cancellation">Cancellation Policy</a>
+                <a href="{{ route('policies.cancellation') }}">Cancellation Policy</a>
             </nav>
         </div>
         <div class="site-shell footer-trust-row" aria-label="Store trust badges">
@@ -469,7 +471,7 @@
                     <span><img src="{{ asset('assets/payments/'.$file.'.svg') }}" alt="{{ $label }}"></span>
                 @endforeach
             </div>
-            <p>&copy; {{ date('Y') }} Sushako Shopping. All Rights Reserved. <span>Made with love in India.</span></p>
+            <p>&copy; {{ date('Y') }} Sushako Shopping. All Rights Reserved. <span>Powered by Sushako.</span></p>
         </div>
     </footer>
 </body>

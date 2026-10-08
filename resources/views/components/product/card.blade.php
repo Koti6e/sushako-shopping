@@ -120,29 +120,44 @@ SVG;
         @endunless
         <div class="product-card__actions">
             @if ($product['available'])
-                <button
-                    class="button button--primary add-to-cart-button"
-                    type="button"
-                    data-add-to-cart
-                    data-slug="{{ $product['slug'] }}"
-                    data-colour="{{ array_key_first($product['colours']) }}"
-                    data-size="{{ $product['sizes'][0] }}"
-                    data-quantity="1"
-                >
-                    {!! $bagIcon !!}
-                    <span data-add-to-cart-label>Add to Cart</span>
-                </button>
-                <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
-                    @csrf
-                    <input type="hidden" name="slug" value="{{ $product['slug'] }}">
-                    <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
-                    <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
-                    <input type="hidden" name="quantity" value="1">
-                    <button class="button button--buy-now" type="submit" data-buy-now-submit>
-                        <i class="fa-solid fa-bolt" aria-hidden="true"></i>
-                        <span data-buy-now-label>Buy Now</span>
+                @if ($compact)
+                    <button
+                        class="button button--primary add-to-cart-button"
+                        type="button"
+                        data-add-to-cart
+                        data-slug="{{ $product['slug'] }}"
+                        data-colour="{{ array_key_first($product['colours']) }}"
+                        data-size="{{ $product['sizes'][0] }}"
+                        data-quantity="1"
+                    >
+                        Add to Cart
                     </button>
-                </form>
+                    <button class="button button--secondary" type="button">Buy Now</button>
+                @else
+                    <button
+                        class="button button--primary add-to-cart-button"
+                        type="button"
+                        data-add-to-cart
+                        data-slug="{{ $product['slug'] }}"
+                        data-colour="{{ array_key_first($product['colours']) }}"
+                        data-size="{{ $product['sizes'][0] }}"
+                        data-quantity="1"
+                    >
+                        {!! $bagIcon !!}
+                        <span>Add to Cart</span>
+                    </button>
+                    <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
+                        @csrf
+                        <input type="hidden" name="slug" value="{{ $product['slug'] }}">
+                        <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
+                        <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
+                        <input type="hidden" name="quantity" value="1">
+                        <button class="button button--buy-now" type="submit" data-buy-now-submit>
+                            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                            <span>Buy Now</span>
+                        </button>
+                    </form>
+                @endif
             @else
                 <button class="button button--ghost" type="button" disabled>Out of Stock</button>
             @endif

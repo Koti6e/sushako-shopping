@@ -176,11 +176,11 @@ class ShippingLabelManagementTest extends TestCase
         $enterpriseLabel = $service->generate($enterpriseOrder, $admin, ['brand_mode' => ShippingLabel::BRAND_SUSHAKO]);
 
         $this->assertSame(ShippingLabel::BRAND_SUSHAKO, $freeLabel->brand_mode);
-        $this->assertSame('Sushako Branding', $freeLabel->metadata['branding_rule']);
-        $this->assertSame(ShippingLabel::BRAND_SUSHAKO, $growthLabel->brand_mode);
-        $this->assertSame('Sushako Labelling', $growthLabel->metadata['branding_rule']);
+        $this->assertSame('Sushako Branding & Labelling', $freeLabel->metadata['branding_rule']);
+        $this->assertSame(ShippingLabel::BRAND_SELLER, $growthLabel->brand_mode);
+        $this->assertSame('Seller Branding & Labelling', $growthLabel->metadata['branding_rule']);
         $this->assertSame(ShippingLabel::BRAND_SELLER, $enterpriseLabel->brand_mode);
-        $this->assertSame('Own Branding Label', $enterpriseLabel->metadata['branding_rule']);
+        $this->assertSame('Seller Branding & Labelling', $enterpriseLabel->metadata['branding_rule']);
         $this->assertSame('Enterprise Seller', $enterpriseLabel->seller_name);
     }
 

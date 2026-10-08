@@ -14,7 +14,7 @@ class SellerOnboardingPaymentService
 
     public function createOrder(Vendor $vendor, string $planKey): SellerOnboardingPayment
     {
-        $plan = $this->sellerAccounts->plans()[$planKey] ?? null;
+        $plan = $this->sellerAccounts->planByKey($planKey);
         abort_unless($plan && $planKey !== Vendor::PLAN_FREE, 422);
 
         $payment = SellerOnboardingPayment::query()

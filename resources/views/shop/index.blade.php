@@ -38,7 +38,7 @@
         </div>
     </section>
 
-    <section class="site-shell products-browse-layout" data-shop-experience data-server-filtered>
+    <section class="site-shell products-browse-layout" data-shop-experience data-server-filtered data-infinite-feed="{{ route('shop.feed') }}" data-infinite-seen="{{ $products->pluck('id')->implode(',') }}">
         <button class="products-filter-backdrop" type="button" data-products-overlay aria-label="Close panels" hidden></button>
 
         <aside class="products-sidebar" data-mobile-filter-panel aria-label="Product filters">
@@ -196,6 +196,11 @@
                     @foreach ($products as $product)
                         <x-product.card :product="$product" compact />
                     @endforeach
+                </div>
+
+                <div class="marketplace-feed-status" data-infinite-status aria-live="polite">
+                    <span data-infinite-loading hidden>We're bringing something to you.</span>
+                    <button class="button button--secondary" type="button" data-infinite-load-more>Load more products</button>
                 </div>
 
                 @if ($products->hasPages())

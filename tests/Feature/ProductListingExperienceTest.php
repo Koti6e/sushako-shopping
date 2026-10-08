@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -10,6 +11,16 @@ class ProductListingExperienceTest extends TestCase
     use RefreshDatabase;
 
     protected bool $seed = true;
+
+    public function test_homepage_uses_marketplace_hero_and_live_products(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Shop Local. Shop Smart. Shop Sushako.')
+            ->assertSee('Browse by Category')
+            ->assertSee('Sushako Storefront Test Product')
+            ->assertDontSee('Marketplace content is being prepared.');
+    }
 
     public function test_products_listing_has_sidebar_filters_sorting_and_buy_now_actions(): void
     {
@@ -34,12 +45,13 @@ class ProductListingExperienceTest extends TestCase
 
     public function test_product_card_add_to_bag_uses_real_cart_endpoint(): void
     {
-        $this->postJson(route('cart.store'), [
-            'slug' => 'lenovo-100e-celeron-laptop',
-            'colour' => 'Standard',
-            'size' => '500GB HDD',
-            'quantity' => 1,
-        ])
+        $this->withoutMiddleware(ValidateCsrfToken::class)
+            ->post(route('cart.store'), [
+                'slug' => 'lenovo-100e-celeron-laptop',
+                'colour' => 'Standard',
+                'size' => '500GB HDD',
+                'quantity' => 1,
+            ])
             ->assertOk()
             ->assertJsonPath('message', 'Added to Cart')
             ->assertJsonPath('cart_count', 1);

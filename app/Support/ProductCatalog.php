@@ -128,6 +128,90 @@ class ProductCatalog
             ->orderByDesc('id');
     }
 
+    /**
+     * Shared customer feed contract. The cursor carries the IDs already
+     * emitted, which keeps the deterministic seller-round-robin order stable
+     * without exposing arbitrary SQL ordering to the browser.
+     */
+    public static function discoveryFeed(array $filters = [], ?string $cursor = null, int $limit = 12): array
+    {
+        $limit = min(36, max(1, $limit));
+        $query = self::marketplaceQuery();
+        $seen = [];
+        if ($cursor) {
+            $decoded = json_decode((string) base64_decode($cursor, true), true);
+            $seen = is_array($decoded['seen'] ?? null) ? array_slice(array_map('intval', $decoded['seen']), -200) : [];
+        }
+
+        if ($seen) {
+            $query->whereNotIn('products.id', $seen);
+        }
+
+        $search = trim((string) ($filters['q'] ?? ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                if (self::fullTextAvailable()) {
+                    $builder->whereFullText(['products.name', 'products.brand', 'products.short_description', 'products.full_description'], $search);
+                }
+                $builder->orWhere('products.name', 'like', '%'.$search.'%')
+                    ->orWhere('products.brand', 'like', '%'.$search.'%')
+                    ->orWhere('products.short_description', 'like', '%'.$search.'%')
+                    ->orWhere('products.full_description', 'like', '%'.$search.'%')
+                    ->orWhereHas('category', fn ($category) => $category->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('vendor', fn ($vendor) => $vendor->where('store_display_name', 'like', '%'.$search.'%')->orWhere('business_name', 'like', '%'.$search.'%'));
+            });
+        }
+
+        if (! empty($filters['category'])) {
+            $category = Category::query()->where('slug', $filters['category'])->where('is_active', true)->with('children.children')->first();
+            if ($category) {
+                $ids = [$category->id];
+                $parents = [$category->id];
+                while ($parents) {
+                    $parents = Category::query()->whereIn('parent_id', $parents)->where('is_active', true)->pluck('id')->all();
+                    $ids = [...$ids, ...$parents];
+                }
+                $query->whereIn('products.category_id', $ids);
+            }
+        }
+
+        if (! empty($filters['seller'])) {
+            $query->where('products.vendor_id', (int) $filters['seller']);
+        }
+        if (! empty($filters['brand'])) {
+            $query->where('products.brand', (string) $filters['brand']);
+        }
+        if (($filters['stock'] ?? null) === 'in-stock') {
+            $query->whereHas('variants', fn ($variant) => $variant->where('stock', '>', 0));
+        }
+        if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
+            $query->where('products.selling_price', '>=', max(0, (int) $filters['min_price']));
+        }
+        if (isset($filters['max_price']) && is_numeric($filters['max_price'])) {
+            $query->where('products.selling_price', '<=', max(0, (int) $filters['max_price']));
+        }
+
+        $sort = (string) ($filters['sort'] ?? 'featured');
+        $ranked = in_array($sort, ['featured', 'relevance', 'newest'], true)
+            ? self::sellerDiverseQuery($query, $sort === 'newest' ? 'products.created_at desc, products.id desc' : null)
+            : $query->when($sort === 'price-low-high', fn ($builder) => $builder->orderBy('products.selling_price')->orderBy('products.id'))
+                ->when($sort === 'price-high-low', fn ($builder) => $builder->orderByDesc('products.selling_price')->orderByDesc('products.id'))
+                ->when($sort === 'rating', fn ($builder) => $builder->orderByDesc('products.rating')->orderByDesc('products.id'))
+                ->when($sort === 'popularity', fn ($builder) => $builder->orderByDesc('products.seller_product_views')->orderByDesc('products.id'))
+                ->when(! in_array($sort, ['price-low-high', 'price-high-low', 'rating', 'popularity'], true), fn ($builder) => $builder->orderByDesc('products.created_at')->orderByDesc('products.id'));
+
+        $products = $ranked->limit($limit + 1)->get();
+        $hasMore = $products->count() > $limit;
+        $products = $products->take($limit)->values();
+        $allSeen = [...$seen, ...$products->pluck('id')->map(fn ($id) => (int) $id)->all()];
+
+        return [
+            'products' => $products->map(fn (Product $product): array => self::productArray($product))->values(),
+            'has_more' => $hasMore,
+            'next_cursor' => $hasMore ? base64_encode(json_encode(['seen' => array_slice($allSeen, -200)], JSON_THROW_ON_ERROR)) : null,
+        ];
+    }
+
     public static function featuredProduct(): ?array
     {
         return self::products()->first();
@@ -472,6 +556,11 @@ class ProductCatalog
                 }
             })
             ->whereHas('variants');
+    }
+
+    private static function fullTextAvailable(): bool
+    {
+        return config('database.default') === 'mysql' || (config('database.connections.mysql.driver') === 'mysql' && app()->environment('production'));
     }
 
     private static function categoryPath(Category $category): Collection

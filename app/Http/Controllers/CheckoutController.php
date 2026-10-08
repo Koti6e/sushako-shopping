@@ -7,8 +7,11 @@ use App\Models\PaymentSetting;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\AbandonedCartService;
+use App\Services\CodEligibilityService;
 use App\Services\OperationalSettingsService;
 use App\Services\SellerCommissionService;
+use App\Services\OrderPaymentService;
+use App\Services\RazorpayPaymentWebhookService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +31,8 @@ class CheckoutController extends Controller
         private readonly OperationalSettingsService $settings,
         private readonly AbandonedCartService $abandonedCart,
         private readonly SellerCommissionService $sellerCommission,
+        private readonly CodEligibilityService $codEligibility,
+        private readonly OrderPaymentService $orderPayments,
     ) {}
 
     public function show(): View|RedirectResponse
@@ -142,6 +147,8 @@ class CheckoutController extends Controller
                 }
             }
 
+            $this->codEligibility->snapshot($order);
+
             return $order;
         });
 
@@ -182,6 +189,7 @@ class CheckoutController extends Controller
         return view('orders.payment', [
             'order' => $order->load('items'),
             'codSetting' => $this->paymentSetting('cod'),
+            'codEligibility' => $this->codEligibility->evaluate($order),
             'razorpaySetting' => $razorpaySetting,
             'razorpayError' => $razorpayError,
         ]);
@@ -191,6 +199,8 @@ class CheckoutController extends Controller
     {
         $this->authorizeCustomerOrder($order);
         abort_unless((bool) $this->paymentSetting('cod')?->enabled, 403);
+        $codEligibility = $this->codEligibility->snapshot($order);
+        abort_unless($codEligibility['status'] === 'eligible', 422, $codEligibility['reason']);
 
         DB::transaction(function () use ($order): void {
             $order->refresh();
@@ -292,39 +302,31 @@ class CheckoutController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($order, $data): void {
-            $order->refresh();
+        if ($localTestPayment && ! $order->razorpay_order_id) {
+            $order->forceFill(['razorpay_order_id' => $data['razorpay_order_id']])->save();
+        }
 
-            if ($order->status === 'payment_pending') {
-                $this->reduceStockFor($order);
-            }
-
-            $order->forceFill([
-                'payment_method' => 'razorpay',
-                'payment_status' => 'paid',
-                'status' => 'placed',
-                'seller_order_status' => 'new',
-                'placed_at' => $order->placed_at ?? now(),
-                'seller_acceptance_due_at' => $order->seller_acceptance_due_at ?? now()->addHours(24),
-                'razorpay_payment_id' => $data['razorpay_payment_id'],
-                'razorpay_order_id' => $data['razorpay_order_id'],
-            ])->save();
-
-            $order->statusEvents()->create([
-                'actor' => 'customer',
-                'from_status' => 'payment_pending',
-                'to_status' => 'new',
-                'event' => 'order_paid',
-                'note' => 'Customer paid online and order entered seller queue.',
-                'user_id' => request()->user()?->id,
-            ]);
-        });
+        $this->orderPayments->markRazorpayPaid(
+            $order,
+            $data['razorpay_payment_id'],
+            $data['razorpay_order_id'],
+            'browser:'.$data['razorpay_payment_id']
+        );
 
         return response()->json([
             'status' => 'paid',
             'message' => "Payment captured for {$order->order_number}.",
             'redirect_url' => route('order.success', $order->order_number),
         ]);
+    }
+
+    public function razorpayWebhook(Request $request, RazorpayPaymentWebhookService $webhooks): JsonResponse
+    {
+        return response()->json($webhooks->handle(
+            $request->getContent(),
+            (string) $request->header('X-Razorpay-Signature'),
+            $request->header('X-Razorpay-Event-Id'),
+        ));
     }
 
     public function track(Request $request): View

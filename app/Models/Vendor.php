@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'business_name', 'legal_name', 'slug', 'email', 'phone', 'alternate_phone', 'business_type', 'tax_number', 'registration_number', 'address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'country', 'logo', 'status', 'onboarding_status', 'approved_at', 'approved_by', 'rejection_reason', 'store_display_name', 'store_description', 'business_logo_path', 'pan_number', 'gstin', 'website', 'area', 'landmark', 'pickup_address', 'pickup_address_line_1', 'pickup_city', 'pickup_state', 'pickup_postal_code', 'return_address', 'working_days', 'opens_at', 'closes_at', 'order_cutoff_at', 'support_hours', 'delivery_radius', 'radius_unit', 'store_timezone', 'shipping_commitment', 'flat_shipping_charge', 'free_shipping_threshold', 'returns_accepted', 'return_window_days', 'return_policy_summary', 'local_delivery_preference', 'preferred_courier_name', 'manual_tracking_enabled', 'store_status', 'current_plan', 'plan_status', 'plan_activated_at', 'plan_expires_at', 'grace_starts_at', 'grace_ends_at', 'onboarding_step', 'onboarding_completed_at', 'published_at', 'vacation_starts_at', 'vacation_ends_at', 'vacation_message', 'vacation_auto_reactivate', 'bank_account_holder_name', 'bank_name', 'bank_account_number', 'bank_ifsc', 'bank_branch_name', 'bank_account_type', 'bank_upi_id', 'bank_document_path', 'bank_verification_status', 'owner_name', 'business_category', 'years_in_business', 'store_tagline', 'store_banner_path', 'store_support_number', 'store_support_email', 'gst_status', 'legal_compliance_confirmed_at', 'gst_certificate_path', 'pan_document_path', 'district', 'address_latitude', 'address_longitude', 'billing_address', 'use_pickup_as_return', 'use_pickup_as_billing', 'delivery_settings', 'settlement_cycle', 'minimum_settlement_amount', 'pending_settlement_notice', 'commission_deductions_note', 'razorpay_payment_status', 'selected_plan', 'selected_plan_id', 'selected_plan_slug', 'selected_plan_snapshot', 'plan_selected_at', 'payment_status', 'dashboard_access_enabled', 'business_name_edit_count', 'tax_preference', 'approval_status', 'approval_rejection_reason', 'store_visibility', 'setup_completed_at', 'published_by'])]
+#[Fillable(['user_id', 'business_name', 'legal_name', 'slug', 'email', 'phone', 'alternate_phone', 'business_type', 'tax_number', 'registration_number', 'address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'country', 'logo', 'status', 'onboarding_status', 'approved_at', 'approved_by', 'rejection_reason', 'store_display_name', 'store_description', 'business_logo_path', 'pan_number', 'gstin', 'website', 'area', 'landmark', 'pickup_address', 'pickup_address_line_1', 'pickup_city', 'pickup_state', 'pickup_postal_code', 'return_address', 'working_days', 'opens_at', 'closes_at', 'order_cutoff_at', 'support_hours', 'delivery_radius', 'radius_unit', 'store_timezone', 'shipping_commitment', 'flat_shipping_charge', 'free_shipping_threshold', 'returns_accepted', 'return_window_days', 'return_policy_summary', 'local_delivery_preference', 'preferred_courier_name', 'manual_tracking_enabled', 'store_status', 'current_plan', 'active_plan_code', 'plan_status', 'plan_activated_at', 'plan_expires_at', 'grace_starts_at', 'grace_ends_at', 'onboarding_step', 'onboarding_completed_at', 'published_at', 'vacation_starts_at', 'vacation_ends_at', 'vacation_message', 'vacation_auto_reactivate', 'bank_account_holder_name', 'bank_name', 'bank_account_number', 'bank_ifsc', 'bank_branch_name', 'bank_account_type', 'bank_upi_id', 'bank_document_path', 'bank_verification_status', 'owner_name', 'business_category', 'years_in_business', 'store_tagline', 'store_banner_path', 'store_support_number', 'store_support_email', 'gst_status', 'legal_compliance_confirmed_at', 'gst_certificate_path', 'pan_document_path', 'district', 'address_latitude', 'address_longitude', 'billing_address', 'use_pickup_as_return', 'use_pickup_as_billing', 'delivery_settings', 'settlement_cycle', 'minimum_settlement_amount', 'pending_settlement_notice', 'commission_deductions_note', 'razorpay_payment_status', 'selected_plan', 'selected_plan_id', 'selected_plan_slug', 'selected_plan_snapshot', 'plan_selected_at', 'payment_status', 'dashboard_access_enabled', 'business_name_edit_count', 'tax_preference', 'approval_status', 'approval_rejection_reason', 'store_visibility', 'setup_completed_at', 'published_by'])]
 class Vendor extends Model
 {
     public const STATUS_ACTIVE = 'active';
@@ -55,9 +55,24 @@ class Vendor extends Model
 
     public const PLAN_FREE = 'free';
 
+    public const PLAN_STARTER = 'starter';
+
+    public const PLAN_PREMIUM = 'premium';
+
     public const PLAN_GROWTH = 'growth';
 
     public const PLAN_ENTERPRISE = 'enterprise';
+
+    public static function canonicalPlan(?string $plan): string
+    {
+        return match ($plan) {
+            self::PLAN_GROWTH => self::PLAN_STARTER,
+            self::PLAN_ENTERPRISE => self::PLAN_PREMIUM,
+            self::PLAN_STARTER => self::PLAN_STARTER,
+            self::PLAN_PREMIUM => self::PLAN_PREMIUM,
+            default => self::PLAN_FREE,
+        };
+    }
 
     public const PLAN_ACTIVE = 'active';
 
@@ -137,6 +152,11 @@ class Vendor extends Model
         return $this->hasMany(SellerNotification::class);
     }
 
+    public function domainImports(): HasMany
+    {
+        return $this->hasMany(SellerDomainImport::class);
+    }
+
     public function holidays(): HasMany
     {
         return $this->hasMany(SellerHoliday::class);
@@ -160,6 +180,7 @@ class Vendor extends Model
             'working_days' => 'array',
             'local_delivery_preference' => 'boolean',
             'manual_tracking_enabled' => 'boolean',
+            'cod_enabled' => 'boolean',
             'vacation_auto_reactivate' => 'boolean',
             'use_pickup_as_return' => 'boolean',
             'use_pickup_as_billing' => 'boolean',

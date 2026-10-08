@@ -32,6 +32,8 @@
                 <p class="eyebrow">Sushako Shopping</p>
                 <h1 id="order-confirmed-title">Order Confirmed</h1>
                 <p class="receipt-copy">Thank you for shopping with Sushako.</p>
+                <p class="receipt-copy">We're bringing something to you. Your order is about to begin its journey.</p>
+                <p class="receipt-copy">The seller will contact you shortly to confirm shipping and delivery details.</p>
                 <span class="sr-only">Hey {{ $order->customer_name }}, your order placed successfully. Order Details. Download Invoice. COD - customer has to pay at delivery. Track Your Order. View shared delivery location.</span>
                 @if ($order->payment_status === 'paid')
                     <span class="sr-only">Paid online via Razorpay. Invoice is marked as paid. Amount Paid. Download Invoice.</span>

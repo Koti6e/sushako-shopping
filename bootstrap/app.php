@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', ShareCookieConsent::class);
         $middleware->validateCsrfTokens(except: [
             'seller/onboarding/payment/webhook',
+            'webhooks/razorpay',
         ]);
 
         $middleware->alias([

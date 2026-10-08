@@ -131,13 +131,13 @@ class ShippingLabelService
 
     public function labelBrandingForVendor(Vendor $vendor, array $options = []): array
     {
-        $plan = $vendor->current_plan ?: Vendor::PLAN_FREE;
+        $plan = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: Vendor::PLAN_FREE);
         $sellerName = $vendor->store_display_name ?: $vendor->business_name ?: $vendor->user?->name ?: 'Seller';
 
-        if ($plan === Vendor::PLAN_ENTERPRISE) {
+        if (in_array($plan, [Vendor::PLAN_STARTER, Vendor::PLAN_PREMIUM], true)) {
             return [
-                'plan' => Vendor::PLAN_ENTERPRISE,
-                'label' => 'Own Branding Label',
+                'plan' => $plan,
+                'label' => 'Seller Branding & Labelling',
                 'brand_mode' => ShippingLabel::BRAND_SELLER,
                 'seller_name' => $options['seller_name'] ?? $sellerName,
                 'seller_logo_path' => $options['seller_logo_path'] ?? $vendor->business_logo_path,
@@ -149,8 +149,8 @@ class ShippingLabelService
         }
 
         return [
-            'plan' => $plan === Vendor::PLAN_GROWTH ? Vendor::PLAN_GROWTH : Vendor::PLAN_FREE,
-            'label' => $plan === Vendor::PLAN_GROWTH ? 'Sushako Labelling' : 'Sushako Branding',
+            'plan' => Vendor::PLAN_FREE,
+            'label' => 'Sushako Branding & Labelling',
             'brand_mode' => ShippingLabel::BRAND_SUSHAKO,
             'seller_name' => $sellerName,
             'seller_logo_path' => null,

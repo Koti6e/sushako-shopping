@@ -169,8 +169,8 @@ class SellerOnboardingFlowTest extends TestCase
             ->assertSee('seller-plan-option-card')
             ->assertSee('Current Free Plan')
             ->assertSee('Select &amp; Pay', false)
-            ->assertSee('name="plan" value="growth"', false)
-            ->assertSee('name="plan" value="enterprise"', false)
+            ->assertSee('name="plan" value="starter"', false)
+            ->assertSee('name="plan" value="premium"', false)
             ->assertSee('Razorpay checkout');
     }
 

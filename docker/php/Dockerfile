@@ -33,6 +33,9 @@ RUN docker-php-ext-install \
 RUN pecl install redis \
     && docker-php-ext-enable redis
 
+# Do not disclose the PHP runtime in HTTP response headers.
+RUN printf "expose_php=Off\n" > /usr/local/etc/php/conf.d/zz-security.ini
+
 COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 COPY --from=node:22-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \

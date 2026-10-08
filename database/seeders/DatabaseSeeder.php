@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(MarketplaceMasterTaxonomySeeder::class);
+
         $password = env('SUSHAKO_DEV_PASSWORD', 'Password123!');
 
         $this->deactivateLegacyMarketplaceAccounts();
