@@ -884,6 +884,17 @@
 
         <div class="ss-discovery-content">
 
+            @if (isset($featuredCampaigns) && $featuredCampaigns->isNotEmpty())
+                <section class="ss-rail-section" aria-labelledby="featured-products-heading">
+                    <div class="ss-rail-heading"><div><p class="ss-eyebrow">Sponsored marketplace placement</p><h2 id="featured-products-heading">Featured Products</h2><p>Seller-sponsored products, clearly labelled and independently ranked.</p></div></div>
+                    <div class="ss-product-rail" data-product-rail tabindex="0" role="region" aria-label="Featured products">
+                        @foreach ($featuredCampaigns as $campaign)
+                            <div class="ss-product-rail__item"><span class="status-badge">Sponsored</span><a href="{{ route('featured.click', $campaign) }}"><x-product.card :product="\App\Support\ProductCatalog::productArray($campaign->product)" compact /></a></div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             {{-- FRESH PICKS --}}
             <section
                 class="ss-rail-section"

@@ -8,10 +8,13 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\AbandonedCartService;
 use App\Services\CodEligibilityService;
+use App\Services\CustomerCartService;
 use App\Services\OperationalSettingsService;
 use App\Services\SellerCommissionService;
 use App\Services\OrderPaymentService;
 use App\Services\RazorpayPaymentWebhookService;
+use App\Services\SellerShippingService;
+use App\Services\FeaturedCampaignService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -33,11 +36,26 @@ class CheckoutController extends Controller
         private readonly SellerCommissionService $sellerCommission,
         private readonly CodEligibilityService $codEligibility,
         private readonly OrderPaymentService $orderPayments,
+        private readonly CustomerCartService $customerCart,
+        private readonly SellerShippingService $sellerShipping,
     ) {}
 
     public function show(): View|RedirectResponse
     {
-        $cart = session('cart', []);
+        $refresh = $this->customerCart->refresh(session('cart', []));
+        $cart = $refresh['cart'];
+        session(['cart' => $cart]);
+
+        if ($refresh['removed'] || $refresh['price_changed'] || $refresh['stock_issues']) {
+            $message = $refresh['removed']
+                ? 'Unavailable products were removed. Review your cart before checkout.'
+                : ($refresh['price_changed']
+                    ? 'A product price changed. Review the updated cart total before checkout.'
+                    : 'Update product quantities in your cart before checkout.');
+
+            return redirect()->route('cart.empty')->with('status', $message);
+        }
+
         $user = request()->user();
 
         if (! $cart) {
@@ -62,6 +80,20 @@ class CheckoutController extends Controller
             return redirect()->route('cart.empty')->with('status', 'Your cart is empty.');
         }
 
+        $refresh = $this->customerCart->refresh($cart);
+        $cart = $refresh['cart'];
+        $request->session()->put('cart', $cart);
+
+        if ($refresh['removed'] || $refresh['price_changed'] || $refresh['stock_issues']) {
+            $message = $refresh['removed']
+                ? 'Unavailable products were removed. Review your updated cart before checkout.'
+                : ($refresh['price_changed']
+                    ? 'A product price changed. Review the updated cart total before placing your order.'
+                    : 'Update product quantities in your cart before placing your order.');
+
+            return redirect()->route('cart.empty')->with('status', $message);
+        }
+
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
             'customer_phone' => ['required', 'string', 'regex:/^[6-9]\d{9}$/'],
@@ -78,7 +110,7 @@ class CheckoutController extends Controller
         $data['pincode'] = preg_replace('/\D+/', '', $data['pincode']);
         $data['city'] = filled($data['city'] ?? null) ? trim($data['city']) : 'Not provided';
 
-        $summary = $this->summary($cart);
+        $summary = $this->settings->checkoutSummaryForAddress($cart, $data['pincode'], $data);
         $customer = $request->user()?->role === User::ROLE_CUSTOMER
             ? $request->user()
             : $this->customerForGuestCheckout($data);
@@ -148,6 +180,7 @@ class CheckoutController extends Controller
             }
 
             $this->codEligibility->snapshot($order);
+            $this->sellerShipping->snapshot($order, $summary['shipping_shipments'] ? ['shipments' => $summary['shipping_shipments']] : ['shipments' => []], $data);
 
             return $order;
         });
@@ -170,7 +203,7 @@ class CheckoutController extends Controller
             abort_unless($order->status === 'placed', 404);
 
             return view('orders.success', [
-                'order' => $order->load('items'),
+                'order' => $order->load('items.vendor'),
             ]);
         }
 
@@ -238,7 +271,7 @@ class CheckoutController extends Controller
         abort_if($order->status === 'payment_pending', 404);
 
         return view('orders.success', [
-            'order' => $order->load('items'),
+            'order' => $order->load('items.vendor'),
         ]);
     }
 
@@ -327,6 +360,11 @@ class CheckoutController extends Controller
             (string) $request->header('X-Razorpay-Signature'),
             $request->header('X-Razorpay-Event-Id'),
         ));
+    }
+
+    public function featuredRazorpayWebhook(Request $request, FeaturedCampaignService $campaigns): JsonResponse
+    {
+        return response()->json($campaigns->webhook($request->getContent(), (string) $request->header('X-Razorpay-Signature')));
     }
 
     public function track(Request $request): View

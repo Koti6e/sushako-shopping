@@ -57,6 +57,28 @@
                 <label>Closing time<input type="time" name="closes_at" value="{{ $closingTime }}">@error('closes_at')<span class="seller-field-error">{{ $message }}</span>@enderror</label>
             </div>
             <label class="seller-checkbox"><input type="checkbox" name="manual_tracking_enabled" value="1" @checked(old('manual_tracking_enabled', $vendor->manual_tracking_enabled))> Enable manual tracking updates</label>
+            @if (isset($profile))
+                <h2>Shipping Profile and Delivery Zones</h2>
+                <label>Default shipping method<input name="default_method" value="{{ old('default_method', $profile->default_method) }}" placeholder="Seller-managed delivery"></label>
+                <label>Free shipping above order value<input type="number" name="free_shipping_threshold" min="0" value="{{ old('free_shipping_threshold', $profile->free_shipping_threshold) }}"></label>
+                <label class="seller-checkbox"><input type="checkbox" name="free_local_pickup" value="1" @checked(old('free_local_pickup', $profile->free_local_pickup))> Offer free local pickup</label>
+                <div class="seller-dashboard-grid">
+                    @foreach ($profile->zones as $zone)
+                        <article class="seller-panel">
+                            <h3>{{ $zone->name }}</h3>
+                            <input name="zones[{{ $zone->id }}][name]" value="{{ $zone->name }}" aria-label="Zone name">
+                            <select name="zones[{{ $zone->id }}][coverage_type]"><option value="local" @selected($zone->coverage_type === 'local')>Local</option><option value="district" @selected($zone->coverage_type === 'district')>District</option><option value="state" @selected($zone->coverage_type === 'state')>State</option><option value="pincodes" @selected($zone->coverage_type === 'pincodes')>PIN codes</option><option value="nationwide" @selected($zone->coverage_type === 'nationwide')>Nationwide</option><option value="restricted" @selected($zone->coverage_type === 'restricted')>Restricted</option></select>
+                            <select name="zones[{{ $zone->id }}][charge_type]"><option value="flat" @selected($zone->charge_type === 'flat')>Flat rate</option><option value="weight" @selected($zone->charge_type === 'weight')>Weight based</option><option value="order_value" @selected($zone->charge_type === 'order_value')>Order value</option></select>
+                            <input type="number" name="zones[{{ $zone->id }}][base_charge]" min="0" value="{{ $zone->base_charge }}" placeholder="Charge (₹)">
+                            <input type="number" name="zones[{{ $zone->id }}][per_kg_charge]" min="0" value="{{ $zone->per_kg_charge }}" placeholder="Per kg (₹)">
+                            <input type="number" name="zones[{{ $zone->id }}][free_above_value]" min="0" value="{{ $zone->free_above_value }}" placeholder="Free above (₹)">
+                            <input name="zones[{{ $zone->id }}][coverage][pincodes]" value="{{ implode(',', $zone->coverage['pincodes'] ?? []) }}" placeholder="PIN codes, comma separated">
+                            <label class="seller-checkbox"><input type="checkbox" name="zones[{{ $zone->id }}][is_active]" value="1" @checked($zone->is_active)> Active</label>
+                        </article>
+                    @endforeach
+                </div>
+                <p class="muted">Product overrides take precedence over these zones. A missing matching rule blocks checkout instead of silently becoming free shipping.</p>
+            @endif
             <div class="seller-form-actions"><button type="submit">Save Shipping Details</button></div>
         </form>
     </section>

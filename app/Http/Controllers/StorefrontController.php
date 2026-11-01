@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\ProductCollection;
 use App\Models\SellerStorefrontCategory;
 use App\Models\Vendor;
+use App\Models\FeaturedCampaign;
+use App\Services\FeaturedCampaignService;
 use App\Services\OfficialStoreService;
 use App\Support\ProductCatalog;
 use Illuminate\Http\JsonResponse;
@@ -19,9 +21,13 @@ use Illuminate\Validation\Rule;
 
 class StorefrontController extends Controller
 {
-    public function home()
+    public function home(FeaturedCampaignService $campaignService)
     {
         $products = ProductCatalog::marketplaceFeed(8);
+        $featuredCampaigns = FeaturedCampaign::visible()->with(['product.images', 'product.category', 'product.vendor'])->latest('starts_at')->limit(4)->get();
+        foreach ($featuredCampaigns as $campaign) {
+            $campaignService->record($campaign, 'impression', request()->user()?->id, hash('sha256', request()->session()->getId().'|'.$campaign->id.'|'.now()->toDateString()));
+        }
         $categories = ProductCatalog::categories();
         $categoryModels = Category::query()
             ->where('is_active', true)
@@ -98,7 +104,15 @@ class StorefrontController extends Controller
             'collectionSections' => $collectionSections,
             'categories' => $activeCategories,
             'products' => $products->take(8),
+            'featuredCampaigns' => $featuredCampaigns,
         ]);
+    }
+
+    public function featuredClick(FeaturedCampaign $campaign, FeaturedCampaignService $campaignService): RedirectResponse
+    {
+        abort_unless($campaign->isVisible() ?? false, 404);
+        $campaignService->record($campaign, 'click', request()->user()?->id, hash('sha256', request()->session()->getId().'|click|'.$campaign->id));
+        return redirect()->route('products.show', $campaign->product->slug);
     }
 
     public function shop(Request $request)
