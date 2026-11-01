@@ -17,9 +17,9 @@
             }
         })();
     </script>
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-official-favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-official-favicon-16.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-official-apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-crest-apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
     @vite(['resources/css/app.css', 'resources/js/app.js'])

@@ -298,7 +298,7 @@ class ProductCatalog
     {
         return [[
             'name' => 'Sushako Customer',
-            'avatar' => asset('assets/brand/sushako-shopping-official-email.png'),
+            'avatar' => asset('assets/brand/sushako-shopping-crest-transparent.png'),
             'rating' => 5,
             'text' => 'The Sushako store feels warm, polished and easy to shop with clear support whenever needed.',
         ]];
@@ -627,6 +627,7 @@ class ProductCatalog
                     });
             })
             ->whereHas('vendor', fn (Builder $query) => $query
+                ->where('status', Vendor::STATUS_ACTIVE)
                 ->where('store_status', Vendor::STORE_LIVE)
                 ->where('store_visibility', Vendor::VISIBILITY_PUBLISHED))
             ->where(function (Builder $query): void {

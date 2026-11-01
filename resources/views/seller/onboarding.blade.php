@@ -905,7 +905,7 @@
                                 <div class="seller-logo-preview-box">
                                     <img
                                         data-logo-image
-                                        src="{{ $vendor->business_logo_path ? asset('storage/'.$vendor->business_logo_path) : asset('assets/brand/sushako-shopping-official-icon.png') }}"
+                                        src="{{ $vendor->business_logo_path ? asset('storage/'.$vendor->business_logo_path) : asset('assets/brand/sushako-shopping-crest-icon.png') }}"
                                         alt="Business logo preview"
                                     >
 

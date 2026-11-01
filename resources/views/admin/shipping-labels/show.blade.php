@@ -60,7 +60,7 @@
                             'locationQr' => $locationQr,
                             'internalBarcode' => $internalBarcode,
                             'internalQr' => $internalQr,
-                            'logoData' => asset('assets/brand/sushako-shopping-official-email.png'),
+                            'logoData' => asset('assets/brand/sushako-shopping-crest-transparent.png'),
                         ])
                     </div>
 

@@ -8,6 +8,7 @@ use App\Models\ProductShippingOverride;
 use App\Services\SellerShippingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class ShippingController extends Controller
@@ -15,12 +16,21 @@ class ShippingController extends Controller
     public function index(Request $request, SellerShippingService $shipping): View
     {
         $vendor = $request->attributes->get('vendor');
-        return view('seller.simple.shipping', ['vendor' => $vendor, 'profile' => $shipping->profile($vendor), 'products' => Product::query()->where('vendor_id', $vendor->id)->with('shippingOverride')->orderBy('name')->get()]);
+        $profile = Schema::hasTable('seller_shipping_profiles') ? $shipping->profile($vendor) : null;
+        $products = Product::query()->where('vendor_id', $vendor->id)->orderBy('name');
+        if ($profile) {
+            $products->with('shippingOverride');
+        }
+
+        return view('seller.simple.shipping', ['vendor' => $vendor, 'profile' => $profile, 'products' => $products->get()]);
     }
 
     public function update(Request $request, SellerShippingService $shipping): RedirectResponse
     {
         $vendor = $request->attributes->get('vendor');
+        if (! Schema::hasTable('seller_shipping_profiles')) {
+            return back()->with('status', 'Shipping profile upgrades are pending the next database migration. Existing shipping settings remain active.');
+        }
         $data = $request->validate([
             'default_method' => ['nullable', 'string', 'max:120'], 'free_shipping_threshold' => ['nullable', 'integer', 'min:0'], 'free_local_pickup' => ['nullable', 'boolean'],
             'zones' => ['array'], 'zones.*.name' => ['required', 'string', 'max:120'], 'zones.*.coverage_type' => ['required', 'in:local,district,state,pincodes,nationwide,restricted'], 'zones.*.charge_type' => ['required', 'in:flat,weight,order_value'], 'zones.*.base_charge' => ['required', 'integer', 'min:0'], 'zones.*.per_kg_charge' => ['nullable', 'integer', 'min:0'], 'zones.*.free_above_value' => ['nullable', 'integer', 'min:0'], 'zones.*.coverage' => ['nullable', 'array'], 'zones.*.is_active' => ['nullable', 'boolean'],
@@ -34,6 +44,9 @@ class ShippingController extends Controller
     public function addZone(Request $request, SellerShippingService $shipping): RedirectResponse
     {
         $vendor = $request->attributes->get('vendor');
+        if (! Schema::hasTable('seller_shipping_profiles')) {
+            return back()->with('status', 'Delivery zones are pending the next database migration.');
+        }
         $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'coverage_type' => ['required', 'in:local,district,state,pincodes,nationwide,restricted'], 'charge_type' => ['required', 'in:flat,weight,order_value'], 'base_charge' => ['required', 'integer', 'min:0'], 'coverage' => ['nullable', 'array']]);
         $shipping->addZone($vendor, $data);
         return back()->with('status', 'Delivery zone added.');
@@ -43,6 +56,9 @@ class ShippingController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
         abort_unless($product->vendor_id === $vendor->id, 404);
+        if (! Schema::hasTable('product_shipping_overrides')) {
+            return back()->with('status', 'Product shipping overrides are pending the next database migration.');
+        }
         $data = $request->validate(['mode' => ['required', 'in:flat,weight,free,digital'], 'charge' => ['required', 'integer', 'min:0'], 'method' => ['nullable', 'string', 'max:120'], 'is_active' => ['nullable', 'boolean']]);
         ProductShippingOverride::query()->updateOrCreate(['product_id' => $product->id], ['vendor_id' => $vendor->id, ...$data, 'is_active' => $request->boolean('is_active')]);
         return back()->with('status', 'Product shipping override saved.');

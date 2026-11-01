@@ -780,7 +780,7 @@
                             >
                         @else
                             <img
-                                src="{{ asset('assets/brand/sushako-shopping-official-icon-512.png') }}"
+                                src="{{ asset('assets/brand/sushako-shopping-crest-icon-512.png') }}"
                                 alt="Sushako"
                                 width="512"
                                 height="512"
@@ -815,7 +815,7 @@
 
                 <div class="ss-hero-media ss-hero-media--brand">
                     <img
-                        src="{{ asset('assets/brand/sushako-shopping-official-icon-512.png') }}"
+                        src="{{ asset('assets/brand/sushako-shopping-crest-icon-512.png') }}"
                         alt="Sushako marketplace"
                         width="512"
                         height="512"

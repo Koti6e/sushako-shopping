@@ -19,11 +19,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Sign in to the Sushako Seller Hub to manage products, orders, plans, and settlements.">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-official-favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-official-favicon-16.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-official-apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-crest-apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" type="image/webp">
+    <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-crest-transparent.png') }}" type="image/png">
     <link rel="preload" as="image" href="{{ asset('assets/auth/seller-commerce-suite.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
     <title>{{ $title }} - Sushako Shopping</title>

@@ -50,15 +50,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta property="og:title" content="{{ $title ?? 'Sushako Shopping' }}">
     <meta property="og:description" content="{{ $description }}">
-    <meta property="og:image" content="{{ asset('assets/brand/sushako-shopping-official-full.png') }}">
+    <meta property="og:image" content="{{ asset('assets/brand/sushako-shopping-crest-primary.png') }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{ url()->current() }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-official-favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-official-favicon-16.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-official-apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-crest-apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" type="image/webp">
+    <link rel="preload" as="image" href="{{ asset('assets/brand/sushako-shopping-crest-transparent.png') }}" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-74005d7c17d4a02f2f25404ec0655d9bc2fdaa53166874c87d7b7eec69d9088a" crossorigin="anonymous" referrerpolicy="no-referrer">
     <title>{{ $title ?? 'Sushako Shopping' }}</title>
     @stack('head')
@@ -153,7 +153,7 @@
 <body class="customer-body">
     <div class="page-loader" data-page-loader aria-hidden="true">
         <div class="page-loader__mark">
-            <img class="page-loader__logo" src="{{ asset('assets/brand/sushako-shopping-official-horizontal.webp') }}" alt="Sushako Shopping" width="760" height="220" decoding="async">
+            <img class="page-loader__logo" src="{{ asset('assets/brand/sushako-shopping-crest-transparent.png') }}" alt="Sushako Shopping" width="1254" height="1254" decoding="async">
             <span></span>
         </div>
     </div>

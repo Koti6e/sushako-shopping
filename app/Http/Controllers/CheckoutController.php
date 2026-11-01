@@ -297,7 +297,7 @@ class CheckoutController extends Controller
         $invoiceSettings = $this->settings->invoice();
         $logoPath = $company->logo_path
             ? storage_path('app/public/'.$company->logo_path)
-            : public_path('assets/brand/sushako-shopping-official-email.png');
+            : public_path('assets/brand/sushako-shopping-crest-transparent.png');
         $logoData = file_exists($logoPath) ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath)) : null;
 
         $pdf = Pdf::loadView('orders.invoice', [

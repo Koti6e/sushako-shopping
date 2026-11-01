@@ -7,13 +7,19 @@ use App\Models\FeaturedCampaign;
 use App\Models\SellerAuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class FeaturedCampaignController extends Controller
 {
     public function index(): View
     {
-        return view('admin/advertising/index', ['campaigns' => FeaturedCampaign::query()->with(['vendor', 'product'])->latest()->paginate(25)]);
+        $campaigns = Schema::hasTable('featured_campaigns')
+            ? FeaturedCampaign::query()->with(['vendor', 'product'])->latest()->paginate(25)
+            : new LengthAwarePaginator([], 0, 25);
+
+        return view('admin/advertising/index', ['campaigns' => $campaigns]);
     }
 
     public function status(Request $request, FeaturedCampaign $campaign): RedirectResponse

@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +17,9 @@ class FeaturedCampaignService
 {
     public function createPayment(Vendor $vendor, Product $product): FeaturedCampaign
     {
+        if (! Schema::hasTable('featured_campaigns')) {
+            throw ValidationException::withMessages(['campaign' => 'Featured promotion is pending the next database migration.']);
+        }
         abort_unless($product->vendor_id === $vendor->id, 404);
         abort_unless($product->is_published && ! in_array($product->seller_status, [Product::SELLER_STATUS_INACTIVE, Product::SELLER_STATUS_REJECTED, Product::SELLER_STATUS_ARCHIVED], true), 422, 'Only an active product can be promoted.');
 
@@ -69,6 +73,9 @@ class FeaturedCampaignService
         abort_unless(filled($secret) && filled($signature) && hash_equals(hash_hmac('sha256', $rawPayload, $secret), $signature), 403, 'Invalid promotion webhook signature.');
         $payload = json_decode($rawPayload, true);
         abort_unless(is_array($payload), 400, 'Invalid promotion webhook payload.');
+        if (! Schema::hasTable('featured_campaigns')) {
+            return ['received' => true, 'ignored' => true, 'reason' => 'featured_schema_pending'];
+        }
         $entity = data_get($payload, 'payload.payment.entity', []);
         $orderId = (string) data_get($entity, 'order_id');
         $campaign = FeaturedCampaign::query()->where('razorpay_order_id', $orderId)->first();

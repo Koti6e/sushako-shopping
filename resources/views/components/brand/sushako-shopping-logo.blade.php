@@ -14,22 +14,17 @@
     $theme = in_array($theme, ['light', 'dark'], true) ? $theme : 'light';
     $size = in_array($size, ['xs', 'sm', 'md', 'lg', 'xl'], true) ? $size : 'md';
 
-    $asset = match ($variant) {
-        'icon' => 'assets/brand/sushako-shopping-official-icon.png',
-        'compact' => 'assets/brand/sushako-shopping-official-horizontal.webp',
-        'mono' => 'assets/brand/sushako-shopping-official-icon.png',
-        default => 'assets/brand/sushako-shopping-official-full.webp',
-    };
+    // The supplied crest is the canonical artwork. Keep one faithful raster source
+    // across contexts so CSS controls sizing without introducing a redraw.
+    $asset = 'assets/brand/sushako-shopping-crest-transparent.png';
 
     if ($variant === 'full' && ! $showSubtitle) {
-        $asset = 'assets/brand/sushako-shopping-official-horizontal.webp';
         $variant = 'compact';
     }
 
     $dimensions = match ($variant) {
         'icon' => ['512', '512'],
-        'compact' => ['760', '220'],
-        default => ['900', '675'],
+        default => ['1254', '1254'],
     };
 
     $classes = trim('brand-logo-link brand-logo-link--'.$variant.' brand-logo-link--'.$theme.' brand-logo-link--'.$size.' '.$attributes->get('class'));

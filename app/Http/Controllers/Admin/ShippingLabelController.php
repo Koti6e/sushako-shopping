@@ -327,7 +327,7 @@ class ShippingLabelController extends Controller
 
     private function logoData(ShippingLabel $label): ?string
     {
-        $path = public_path('assets/brand/sushako-shopping-official-email.png');
+        $path = public_path('assets/brand/sushako-shopping-crest-transparent.png');
 
         if ($label->brand_mode === 'seller' && $label->seller_logo_path) {
             $path = storage_path('app/public/'.$label->seller_logo_path);

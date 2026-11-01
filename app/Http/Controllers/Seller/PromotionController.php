@@ -9,6 +9,8 @@ use App\Services\FeaturedCampaignService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class PromotionController extends Controller
@@ -16,7 +18,11 @@ class PromotionController extends Controller
     public function index(Request $request): View
     {
         $vendor = $request->attributes->get('vendor');
-        return view('seller.promotions.index', ['vendor' => $vendor, 'products' => Product::query()->where('vendor_id', $vendor->id)->where('is_published', true)->where('seller_status', Product::SELLER_STATUS_APPROVED)->with('images')->latest()->get(), 'campaigns' => FeaturedCampaign::query()->where('vendor_id', $vendor->id)->with('product')->latest()->paginate(10)]);
+        $campaigns = Schema::hasTable('featured_campaigns')
+            ? FeaturedCampaign::query()->where('vendor_id', $vendor->id)->with('product')->latest()->paginate(10)
+            : new LengthAwarePaginator([], 0, 10);
+
+        return view('seller.promotions.index', ['vendor' => $vendor, 'products' => Product::query()->where('vendor_id', $vendor->id)->where('is_published', true)->where('seller_status', Product::SELLER_STATUS_APPROVED)->with('images')->latest()->get(), 'campaigns' => $campaigns]);
     }
 
     public function create(Request $request, FeaturedCampaignService $campaigns): JsonResponse

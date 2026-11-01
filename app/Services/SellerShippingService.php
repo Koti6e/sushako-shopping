@@ -9,6 +9,7 @@ use App\Models\SellerShippingProfile;
 use App\Models\SellerShippingZone;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class SellerShippingService
@@ -74,6 +75,10 @@ class SellerShippingService
             if (! $vendor) {
                 throw ValidationException::withMessages(['shipping' => 'A product seller could not be identified.']);
             }
+            if (! Schema::hasTable('seller_shipping_profiles')) {
+                $shipments[] = ['vendor_id' => $vendor->id, 'vendor' => $vendor, 'amount' => 0, 'zone' => null, 'method' => null, 'rule' => ['source' => 'legacy_global_shipping', 'reason' => 'shipping_schema_pending']];
+                continue;
+            }
             $profile = SellerShippingProfile::query()->where('vendor_id', $vendor->id)->where('is_active', true)->with('zones')->first();
             if (! $profile) {
                 $shipments[] = ['vendor_id' => $vendor->id, 'vendor' => $vendor, 'amount' => 0, 'zone' => null, 'method' => null, 'rule' => ['source' => 'legacy_global_shipping']];
@@ -95,6 +100,10 @@ class SellerShippingService
 
     public function snapshot(Order $order, array $shipping, array $address): void
     {
+        if (! Schema::hasTable('order_shipping_snapshots')) {
+            return;
+        }
+
         foreach ($shipping['shipments'] as $shipment) {
             OrderShippingSnapshot::query()->create([
                 'order_id' => $order->id, 'vendor_id' => $shipment['vendor_id'], 'zone_name' => $shipment['zone'],

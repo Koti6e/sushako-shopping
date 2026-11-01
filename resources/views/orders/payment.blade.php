@@ -165,7 +165,7 @@
             currency: @json(config('services.razorpay.currency', 'INR')),
             name: 'Sushako Shopping',
             description: @json('Payment for order '.$order->order_number),
-            image: @json(asset('assets/brand/sushako-shopping-official-favicon-32.png')),
+            image: @json(asset('assets/brand/sushako-shopping-crest-favicon-32.png')),
             order_id: @json($order->razorpay_order_id ?: config('services.razorpay.test_order_id')),
             handler: async function (response) {
                 showPaymentMessage('Verifying Razorpay payment...', 'info');

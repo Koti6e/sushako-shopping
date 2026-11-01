@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class StorefrontController extends Controller
@@ -24,7 +25,9 @@ class StorefrontController extends Controller
     public function home(FeaturedCampaignService $campaignService)
     {
         $products = ProductCatalog::marketplaceFeed(8);
-        $featuredCampaigns = FeaturedCampaign::visible()->with(['product.images', 'product.category', 'product.vendor'])->latest('starts_at')->limit(4)->get();
+        $featuredCampaigns = Schema::hasTable('featured_campaigns')
+            ? FeaturedCampaign::visible()->with(['product.images', 'product.category', 'product.vendor'])->latest('starts_at')->limit(4)->get()
+            : collect();
         foreach ($featuredCampaigns as $campaign) {
             $campaignService->record($campaign, 'impression', request()->user()?->id, hash('sha256', request()->session()->getId().'|'.$campaign->id.'|'.now()->toDateString()));
         }
