@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['vendor_id', 'domain', 'verification_token', 'verification_method', 'verified_at', 'status', 'page_limit', 'crawl_depth'])]
+#[Fillable(['vendor_id', 'domain', 'verification_token', 'verification_method', 'verified_at', 'status', 'page_limit', 'crawl_depth', 'settings'])]
 class SellerDomainImport extends Model
 {
     public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
@@ -21,6 +21,6 @@ class SellerDomainImport extends Model
 
     protected function casts(): array
     {
-        return ['verified_at' => 'datetime'];
+        return ['verified_at' => 'datetime', 'settings' => 'array'];
     }
 }

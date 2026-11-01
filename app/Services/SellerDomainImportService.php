@@ -14,6 +14,7 @@ use App\Models\SellerDomainImport;
 use App\Models\SellerImportCandidate;
 use App\Models\SellerImportJob;
 use App\Models\Vendor;
+use App\Services\Catalogue\PlatformAdapterResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,9 @@ class SellerDomainImportService
     public function analyse(Vendor $vendor, SellerDomainImport $import): CatalogueIntelligenceProfile
     {
         abort_unless($import->vendor_id === $vendor->id, 404);
+        if ($import->status !== 'verified') {
+            throw ValidationException::withMessages(['domain' => 'Verify ownership of this source before running website analysis.']);
+        }
 
         $profile = CatalogueIntelligenceProfile::query()->firstOrCreate(
             ['seller_domain_import_id' => $import->id],
@@ -106,21 +110,30 @@ class SellerDomainImportService
 
         $query = \App\Models\Product::query()->where('vendor_id', $vendor->id);
         $evidence = [];
+        $product = null;
         if ($extracted->sku) {
-            $query->where(function ($inner) use ($extracted): void {
-                $inner->where('sku', $extracted->sku)->orWhere('name', $extracted->name);
-            });
-            $evidence[] = 'sku_or_name';
-        } else {
-            $query->where('name', $extracted->name);
+            // Product SKU is not a universal field in the legacy catalogue, so
+            // only use it when the source also supplies a strong name signal.
+            $product = $query->where('name', $extracted->name)->first();
+            if ($product) $evidence[] = 'sku_and_name';
         }
-        $product = $query->first();
-        $outcome = $product ? 'possible_match' : 'new_product';
-        $confidence = $product && $extracted->sku ? 0.92 : ($product ? 0.55 : 0);
+        if (! $product && $extracted->name && $extracted->brand) {
+            $product = (clone $query)->where('name', $extracted->name)->where('brand', $extracted->brand)->first();
+            if ($product) $evidence[] = 'brand_and_name';
+        }
+
+        $changes = [];
+        if ($product) {
+            if ($extracted->price !== null && (float) $product->selling_price !== (float) $extracted->price) $changes['price'] = ['old' => (float) $product->selling_price, 'new' => (float) $extracted->price];
+            if ($extracted->brand && (string) $product->brand !== (string) $extracted->brand) $changes['brand'] = ['old' => $product->brand, 'new' => $extracted->brand];
+        }
+        $outcome = $product ? (count($evidence) > 0 && $extracted->sku ? 'exact_match' : 'possible_match') : ($extracted->name ? 'new_product' : 'insufficient_information');
+        $confidence = $outcome === 'exact_match' ? 0.92 : ($outcome === 'possible_match' ? 0.72 : 0);
+        $decision = $product && $changes === [] ? 'skipped_unchanged' : 'pending';
 
         return CatalogueProductMatch::query()->updateOrCreate(
             ['vendor_id' => $vendor->id, 'catalogue_extracted_product_id' => $extracted->id],
-            ['product_id' => $product?->id, 'outcome' => $outcome, 'confidence' => $confidence, 'evidence' => $evidence, 'decision' => 'pending'],
+            ['product_id' => $product?->id, 'outcome' => $outcome, 'confidence' => $confidence, 'evidence' => $evidence, 'changes' => $changes, 'decision' => $decision],
         );
     }
 
@@ -240,7 +253,8 @@ class SellerDomainImportService
             $seen = [];
             $pages = 0;
 
-            while ($queue !== [] && $pages < min((int) $import->page_limit, 100)) {
+            $pageLimit = max(1, (int) $import->page_limit);
+            while ($queue !== [] && $pages < $pageLimit) {
                 $current = array_shift($queue);
                 $url = $this->safeUrl($current['url'], $import->domain);
                 if (! $this->robotsAllows($robots, parse_url($url, PHP_URL_PATH) ?: '/')) continue;
@@ -249,6 +263,10 @@ class SellerDomainImportService
                 $html = $this->fetch($url);
                 $pages++;
                 $job->increment('pages_found');
+                $session->forceFill([
+                    'pages_scanned' => $pages,
+                    'progress' => ['pages_scanned' => $pages, 'queue_remaining' => count($queue), 'last_url' => $url],
+                ])->save();
 
                 foreach ($this->extractCandidates($html, $url, $import->domain) as $payload) {
                     try {
@@ -268,8 +286,11 @@ class SellerDomainImportService
                             'canonical_url' => $payload['source_url'],
                             'name' => $payload['name'] ?? null,
                             'sku' => $payload['sku'] ?? null,
+                            'gtin' => $payload['gtin'] ?? null,
+                            'mpn' => $payload['mpn'] ?? null,
                             'brand' => $payload['brand'] ?? null,
                             'price' => is_numeric($payload['price'] ?? null) ? $payload['price'] : null,
+                            'currency' => $payload['currency'] ?? null,
                             'availability' => $payload['availability'] ?? null,
                             'payload' => $payload,
                             'images' => $payload['images'] ?? [],
@@ -293,7 +314,7 @@ class SellerDomainImportService
 
                 if ($current['depth'] < (int) $import->crawl_depth) {
                     foreach ($this->links($html, $url, $import->domain) as $link) {
-                        if (count($queue) + $pages >= (int) $import->page_limit) break;
+                        if (count($queue) + $pages >= $pageLimit) break;
                         if ($this->robotsAllows($robots, parse_url($link, PHP_URL_PATH) ?: '/')) $queue[] = ['url' => $link, 'depth' => $current['depth'] + 1];
                     }
                 }
@@ -311,6 +332,7 @@ class SellerDomainImportService
                 'urls_discovered' => $session->urls()->count(),
                 'unique_urls' => $session->urls()->distinct('canonical_url')->count('canonical_url'),
                 'categories_discovered' => $session->categories()->count(),
+                'eligible_products' => $session->products()->whereIn('status', ['extracted', 'matched'])->count(),
                 'finished_at' => now(),
             ])->save();
         } catch (\Throwable $exception) {
@@ -379,12 +401,7 @@ class SellerDomainImportService
 
     private function detectPlatform(string $html): string
     {
-        $lower = Str::lower($html);
-        if (str_contains($lower, 'woocommerce') || str_contains($lower, 'wp-content')) return 'woocommerce';
-        if (str_contains($lower, 'cdn.shopify.com') || str_contains($lower, 'shopify')) return 'shopify';
-        if (str_contains($lower, 'magento') || str_contains($lower, 'mage-cache')) return 'magento';
-        if (str_contains($lower, 'laravel_session') || str_contains($lower, 'laravel')) return 'laravel';
-        return 'generic';
+        return app(PlatformAdapterResolver::class)->resolve($html)->name();
     }
 
     private function detectCurrency(string $html): ?string
@@ -498,17 +515,89 @@ class SellerDomainImportService
         $items = [];
         foreach ($crawler->filter('script[type="application/ld+json"]') as $script) {
             $decoded = json_decode($script->textContent, true);
-            $objects = is_array($decoded) && array_is_list($decoded) ? $decoded : [$decoded];
+            $objects = $this->jsonLdObjects($decoded);
             foreach ($objects as $object) {
-                if (! is_array($object) || ! in_array($object['@type'] ?? null, ['Product', 'product'], true)) continue;
+                if (! is_array($object) || ! $this->isProductSchema($object)) continue;
                 $offers = $object['offers'] ?? [];
                 if (isset($offers[0])) $offers = $offers[0];
                 $images = $object['image'] ?? [];
                 $images = is_array($images) ? $images : [$images];
-                $items[] = ['source_url' => $object['url'] ?? $url, 'name' => $object['name'] ?? null, 'description' => $object['description'] ?? '', 'brand' => is_array($object['brand'] ?? null) ? ($object['brand']['name'] ?? null) : ($object['brand'] ?? null), 'sku' => $object['sku'] ?? null, 'price' => $offers['price'] ?? null, 'availability' => $offers['availability'] ?? null, 'images' => array_values(array_filter($images, 'is_string'))];
+                $items[] = $this->normalisePayload([
+                    'source_url' => $object['url'] ?? $url,
+                    'name' => $object['name'] ?? null,
+                    'description' => $object['description'] ?? '',
+                    'brand' => is_array($object['brand'] ?? null) ? ($object['brand']['name'] ?? null) : ($object['brand'] ?? null),
+                    'sku' => $object['sku'] ?? null,
+                    'gtin' => $object['gtin13'] ?? $object['gtin'] ?? null,
+                    'mpn' => $object['mpn'] ?? null,
+                    'price' => $offers['price'] ?? null,
+                    'currency' => $offers['priceCurrency'] ?? null,
+                    'availability' => $offers['availability'] ?? null,
+                    'images' => array_values(array_filter($images, 'is_string')),
+                ]);
             }
         }
-        return $items;
+        if ($items !== []) return $items;
+
+        $meta = [];
+        foreach ($crawler->filter('meta[property], meta[name]') as $node) {
+            $key = strtolower(trim($node->getAttribute('property') ?: $node->getAttribute('name')));
+            $meta[$key] = trim($node->getAttribute('content'));
+        }
+        $name = $meta['og:title'] ?? $meta['twitter:title'] ?? ($crawler->filter('h1')->count() ? trim($crawler->filter('h1')->first()->text()) : null);
+        if (! $name) return [];
+
+        $image = $meta['og:image'] ?? null;
+        $price = $meta['product:price:amount'] ?? $meta['og:price:amount'] ?? null;
+        return [$this->normalisePayload([
+            'source_url' => $meta['og:url'] ?? $url,
+            'name' => $name,
+            'description' => $meta['og:description'] ?? ($crawler->filter('meta[name="description"]')->count() ? $crawler->filter('meta[name="description"]')->attr('content') : ''),
+            'brand' => $meta['product:brand'] ?? null,
+            'sku' => $meta['product:sku'] ?? null,
+            'price' => $price,
+            'currency' => $meta['product:price:currency'] ?? null,
+            'images' => $image ? [$image] : [],
+        ])];
+    }
+
+    private function jsonLdObjects(mixed $decoded): array
+    {
+        if (! is_array($decoded)) return [];
+        $objects = array_is_list($decoded) ? $decoded : [$decoded];
+        $flattened = [];
+        foreach ($objects as $object) {
+            if (! is_array($object)) continue;
+            if (isset($object['@graph']) && is_array($object['@graph'])) $flattened = [...$flattened, ...$object['@graph']];
+            else $flattened[] = $object;
+        }
+        return $flattened;
+    }
+
+    private function isProductSchema(array $object): bool
+    {
+        $types = is_array($object['@type'] ?? null) ? $object['@type'] : [$object['@type'] ?? null];
+        return (bool) array_filter($types, fn ($type) => strtolower((string) $type) === 'product');
+    }
+
+    private function normalisePayload(array $payload): array
+    {
+        $payload['name'] = trim(strip_tags((string) ($payload['name'] ?? '')));
+        $payload['description'] = trim(strip_tags((string) ($payload['description'] ?? '')));
+        $payload['price'] = $this->normalisePrice($payload['price'] ?? null);
+        $payload['images'] = array_values(array_unique(array_filter(array_map('strval', (array) ($payload['images'] ?? [])), fn ($image) => filter_var($image, FILTER_VALIDATE_URL))));
+        $payload['currency'] = $payload['currency'] ? strtoupper(trim((string) $payload['currency'])) : null;
+        return $payload;
+    }
+
+    private function normalisePrice(mixed $value): ?float
+    {
+        if ($value === null || $value === '') return null;
+        $value = preg_replace('/[^0-9.,-]/', '', (string) $value);
+        if ($value === '') return null;
+        if (str_contains($value, ',') && str_contains($value, '.')) $value = str_replace(',', '', $value);
+        elseif (str_contains($value, ',')) $value = str_replace(',', '.', $value);
+        return is_numeric($value) ? round((float) $value, 2) : null;
     }
 
     private function links(string $html, string $base, string $domain): array
