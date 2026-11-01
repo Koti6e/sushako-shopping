@@ -27,6 +27,9 @@
             @if (session('status'))
                 <div class="status-banner">{{ session('status') }}</div>
             @endif
+            @if (filled($cartRefreshStatus ?? null))
+                <div class="status-banner" role="status">{{ $cartRefreshStatus }}</div>
+            @endif
 
             <div class="elite-cart-layout">
                 <main class="elite-cart-main" data-cart-summary>
@@ -57,9 +60,20 @@
                                 </a>
                                 <div class="elite-cart-item__body">
                                     <div>
-                                        <span class="elite-cart-item__seller">Sold by Sushako Select</span>
+                                        <span class="elite-cart-item__seller">
+                                            @if (filled($item['seller_slug'] ?? null))
+                                                Sold by <a href="{{ route('stores.show', $item['seller_slug']) }}">{{ $item['seller_name'] }}</a>
+                                            @elseif (filled($item['seller_name'] ?? null))
+                                                Sold by {{ $item['seller_name'] }}
+                                            @else
+                                                <a href="{{ route('products.show', $item['slug']) }}">View seller details</a>
+                                            @endif
+                                        </span>
                                         <h2><a href="{{ route('products.show', $item['slug']) }}">{{ $item['product'] }}</a></h2>
                                         <p>{{ $item['colour'] }} / {{ $item['size'] }}</p>
+                                        @if (filled($item['availability_issue'] ?? null))
+                                            <p class="status-banner status-banner--warning" role="alert">{{ $item['availability_issue'] }}</p>
+                                        @endif
                                     </div>
                                     <div class="elite-cart-item__meta">
                                         <span><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Delivery updates after order placement</span>
@@ -129,12 +143,17 @@
                             <small>Inclusive of applicable taxes</small>
                         @endif
                     </div>
-                    <a href="{{ route('checkout') }}" class="button button--primary elite-checkout-button">
-                        <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                        Proceed Securely
-                    </a>
+                    @if (empty($cartIssues))
+                        <a href="{{ route('checkout') }}" class="button button--primary elite-checkout-button">
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            Proceed Securely
+                        </a>
+                    @else
+                        <button class="button button--primary elite-checkout-button" type="button" disabled>Update Cart to Continue</button>
+                    @endif
                     <div class="elite-summary-trust">
                         <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Secure checkout</span>
+                        <span><img src="{{ asset('assets/payments/razorpay.svg') }}" alt="Razorpay"> Payment options at checkout</span>
                         <span><i class="fa-solid fa-box" aria-hidden="true"></i> Carefully packed</span>
                         <span><i class="fa-solid fa-headset" aria-hidden="true"></i> Order assistance</span>
                     </div>
@@ -147,10 +166,14 @@
                 <span>Order Total</span>
                 <strong data-mobile-checkout-total>&#8377;{{ number_format($summary['total']) }}</strong>
             </div>
-            <a href="{{ route('checkout') }}">
-                <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                Proceed
-            </a>
+            @if (empty($cartIssues))
+                <a href="{{ route('checkout') }}">
+                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                    Proceed
+                </a>
+            @else
+                <button type="button" disabled>Update Cart</button>
+            @endif
         </div>
     </section>
 </x-layouts.customer>

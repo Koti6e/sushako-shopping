@@ -31,7 +31,7 @@
     </script>
 @endpush
 
-<x-layouts.customer title="{{ $product['name'] }} - Sushako Shopping">
+<x-layouts.customer :title="$product['name'].' - Sushako Shopping'" :description="$product['short_description'] ?: $product['full_description']">
     <section class="site-shell product-detail">
         <nav class="breadcrumbs" aria-label="Breadcrumb">
             <a href="{{ route('home') }}">Home</a>
@@ -50,18 +50,18 @@
                 <div class="product-gallery__stage">
                     @forelse ($product['images'] as $image)
                         <figure class="product-gallery__slide @if($loop->first) is-active @endif" data-product-slide>
-                            <x-product.image :src="$image['path']" :alt="$product['name'].' '.$image['label']" :loading="$loop->first ? 'eager' : 'lazy'" fallback-class="product-gallery__no-preview" />
+                            <x-product.image :src="$image['path']" :alt="$product['name'].' '.$image['label']" :loading="$loop->first ? 'eager' : 'lazy'" :category="$product['category'] ?? $product['department'] ?? null" fallback-class="product-gallery__no-preview" />
                             <figcaption><span>{{ $image['label'] }}</span><strong>{{ $product['name'] }}</strong></figcaption>
                         </figure>
                     @empty
-                        <x-product.image fallback-class="product-gallery__no-preview" />
+                        <x-product.image :category="$product['category'] ?? $product['department'] ?? null" fallback-class="product-gallery__no-preview" />
                     @endforelse
                     @if (count($product['images']) > 1)
                         <button class="product-gallery__control product-gallery__control--prev" type="button" data-product-gallery-prev aria-label="Previous image">
-                            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
                         </button>
                         <button class="product-gallery__control product-gallery__control--next" type="button" data-product-gallery-next aria-label="Next image">
-                            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
                         </button>
                     @endif
                 </div>
@@ -69,7 +69,7 @@
                     <div class="product-gallery__thumbs" aria-label="Product image thumbnails">
                         @foreach ($product['images'] as $image)
                             <button class="@if($loop->first) is-active @endif" type="button" data-product-gallery-thumb aria-label="Show {{ $image['label'] }}">
-                                <x-product.image :src="$image['path']" :alt="$image['label']" />
+                                <x-product.image :src="$image['path']" :alt="$image['label']" :category="$product['category'] ?? $product['department'] ?? null" />
                             </button>
                         @endforeach
                     </div>
@@ -202,23 +202,25 @@
                     <a class="button button--secondary" href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode("Hello Sushako Shopping,\n\nI would like to enquire about:\n".$product['name']."\n".route('products.show', $product['slug'])."\nSelected Option: ".($product['has_colour_options'] ? $defaultColour : 'Standard').(($product['has_size_options'] || $product['has_custom_options']) ? ' / '.$defaultSize : '')."\nPrice: INR ".$defaultPrice) }}" target="_blank" rel="noopener noreferrer">WhatsApp Enquiry</a>
                 </div>
 
-                <div class="trust-grid">
-                    <span class="trust-badge trust-badge--image">
-                        <img src="{{ asset('assets/payments/razorpay.svg') }}" alt="Razorpay">
-                        Secure payments
+                <div class="product-trust-strip" aria-label="Customer reassurance">
+                    <span class="product-trust-item">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                        <span>Secure payments</span>
                     </span>
-                    <span class="trust-badge">
-                        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-                        WhatsApp support
-                    </span>
-                    <span class="trust-badge">
-                        <i class="fa-solid fa-route" aria-hidden="true"></i>
-                        Track order
-                    </span>
-                    <span class="trust-badge">
-                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                        {{ $product['seller_return_policy'] }}
-                    </span>
+                    @if (filled(config('services.whatsapp.support_number')))
+                        <a class="product-trust-item" href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode(config('services.whatsapp.support_message')) }}" target="_blank" rel="noopener noreferrer">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 11.5a8 8 0 0 1-11.8 7.1L4 20l1.4-4A8 8 0 1 1 20 11.5Z"/><path d="M9 8.8c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.6 1.3c.1.2.1.4-.1.6l-.5.6c.5 1 1.2 1.7 2.2 2.2l.6-.5c.2-.2.4-.2.6-.1l1.3.6c.3.1.4.3.4.5v.5c0 .3 0 .5-.4.7-1 .5-2.1.2-3.1-.3-1.7-.8-3-2.1-3.8-3.8-.5-1-.8-2.1-.3-3.1Z"/></svg>
+                            <span>WhatsApp support</span>
+                        </a>
+                    @endif
+                    <a class="product-trust-item" href="{{ route('orders.track') }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h10a3 3 0 0 1 3 3v7"/><path d="m14 13 3 3 3-3"/><path d="M4 6v13h5"/></svg>
+                        <span>Track order</span>
+                    </a>
+                    <a class="product-trust-item" href="{{ route('policies.return-refund') }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 5h12v14H6z"/><path d="m9 9 2 2 4-4M9 15h6"/></svg>
+                        <span>{{ $product['seller_return_policy'] }}</span>
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 <x-layouts.admin title="Settlements & Reconciliation">
     <x-admin.shell eyebrow="Finance" title="Settlements & Reconciliation" subtitle="Manual settlement batching with immutable fee snapshots.">
-        <section class="admin-dashboard">
+        <section class="admin-dashboard admin-settlements-page">
             @if (session('status'))<div class="admin-alert admin-alert--success">{{ session('status') }}</div>@endif
             @if ($errors->any())<div class="admin-alert admin-alert--danger">{{ $errors->first() }}</div>@endif
             <div class="admin-metric-grid">

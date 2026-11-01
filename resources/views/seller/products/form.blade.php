@@ -214,6 +214,17 @@
             </div>
         </form>
 
+        @if($isEdit)
+            <div class="seller-product-publication-actions" aria-label="Publication controls">
+                <span>Storefront visibility: <strong>{{ $product->is_published ? 'Published' : 'Unpublished' }}</strong></span>
+                <form method="POST" action="{{ route('seller.products.publication.update', $product) }}">
+                    @csrf
+                    <input type="hidden" name="action" value="{{ $product->is_published ? 'unpublish' : 'publish' }}">
+                    <button type="submit">{{ $product->is_published ? 'Unpublish Product' : 'Publish Product' }}</button>
+                </form>
+            </div>
+        @endif
+
         <aside class="seller-category-request-card">
             <div>
                 <h2>Can't find your category?</h2>

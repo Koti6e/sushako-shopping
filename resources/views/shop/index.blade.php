@@ -17,7 +17,7 @@
     $activeFilterCount = collect($activeFilterChips)->reject(fn (array $chip): bool => $chip['key'] === 'sort')->count();
 @endphp
 
-<x-layouts.customer :title="$title">
+<x-layouts.customer :title="$title" :description="$lede">
     <section class="shop-collection-intro">
         <div class="site-shell">
             <nav class="breadcrumbs" aria-label="Breadcrumb">
@@ -81,7 +81,7 @@
                         <a href="{{ $productsUrlWith(['category' => $category['slug']]) }}" @class(['is-active' => $filters['category'] === $category['slug']]) @if($filters['category'] === $category['slug']) aria-current="true" @endif>
                             <i class="fa-solid fa-tag" aria-hidden="true"></i>
                             <span>{{ $category['name'] }}</span>
-                            <small>{{ $category['product_count'] }}</small>
+                            @if ((int) $category['product_count'] > 0)<small>{{ $category['product_count'] }}</small>@endif
                         </a>
                     @endforeach
                 </nav>

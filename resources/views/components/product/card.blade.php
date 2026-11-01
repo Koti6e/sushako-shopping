@@ -11,6 +11,7 @@
 </svg>
 SVG;
     $displayBadge = $product['seller_official'] ? 'Official Store' : ($product['badge'] ?: ($product['is_best_seller'] ? 'Bestseller' : ($product['is_new'] ? 'New' : null)));
+    $sellerTrustLabel = ! $product['seller_official'] && ($product['seller_verified'] ?? false) ? 'Verified Seller' : null;
 @endphp
 
 <article
@@ -33,19 +34,19 @@ SVG;
     data-new="{{ $product['is_new'] ? '1' : '0' }}"
     data-best-selling="{{ $product['is_best_seller'] ? '1' : '0' }}"
 >
-    <a href="{{ route('products.show', $product['slug']) }}" class="product-card__image">
-        <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name'].' front view'" />
-        @if (isset($product['images'][1]))
-            <x-product.image class="product-card__image-alt" :src="$product['images'][1]['path']" :alt="$product['name'].' alternate view'" />
-        @endif
-        @if (filled($displayBadge))
-            <span>{{ $displayBadge }}</span>
-        @endif
-        @if (! $compact && $product['discount'] > 0)
-            <strong>{{ $product['discount'] }}% off</strong>
-        @endif
-    </a>
-    @if ($compact)
+    <div class="product-card__media">
+        <a href="{{ route('products.show', $product['slug']) }}" class="product-card__image">
+            <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name'].' front view'" :category="$product['category'] ?? $product['department'] ?? null" />
+            @if (isset($product['images'][1]))
+                <x-product.image class="product-card__image-alt" :src="$product['images'][1]['path']" :alt="$product['name'].' alternate view'" :category="$product['category'] ?? $product['department'] ?? null" />
+            @endif
+            @if (filled($displayBadge))
+                <span>{{ $displayBadge }}</span>
+            @endif
+            @if ($product['discount'] > 0)
+                <strong>{{ $product['discount'] }}% off</strong>
+            @endif
+        </a>
         <div class="product-card__quick-actions" aria-label="Product actions">
             <button class="icon-button" type="button" data-wishlist data-slug="{{ $product['slug'] }}" aria-label="Add {{ $product['name'] }} to wishlist" title="Wishlist">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
@@ -54,18 +55,11 @@ SVG;
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>
             </button>
         </div>
-    @endif
+    </div>
+
     <div class="product-card__body">
-        @unless ($compact)
-            <div class="product-card__topline">
-                <p>{{ $product['brand'] }}</p>
-                <small>{{ $product['stock_label'] }}</small>
-            </div>
-        @endunless
         <h3><a href="{{ route('products.show', $product['slug']) }}">{{ $product['name'] }}</a></h3>
-        @if ($compact)
-            <p class="product-card__availability">{{ $product['stock_label'] }}</p>
-        @endif
+
         <div class="product-card__seller product-card__seller--marketplace">
             <span class="product-card__seller-line">
                 <small>Sold by</small>
@@ -74,23 +68,15 @@ SVG;
                 @else
                     <b>{{ $product['seller_name'] }}</b>
                 @endif
-                @if ($product['seller_trust_label'])
-                    <em>{{ $product['seller_trust_label'] }}</em>
-                @endif
             </span>
-            <span class="product-card__seller-meta">
-                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                {{ $product['seller_city'] ?: 'India' }}
-            </span>
-        </div>
-        <div class="product-card__rating">
-            @if ((int) $product['reviews'] > 0)
-                <span>{{ $product['rating'] }} <i class="fa-solid fa-star" aria-hidden="true"></i></span>
-                <small>{{ $product['reviews'] }} reviews</small>
-            @else
-                <span>New Seller</span>
+            @if ($sellerTrustLabel)
+                <span class="product-card__seller-trust"><i class="fa-solid fa-circle-check" aria-hidden="true"></i>{{ $sellerTrustLabel }}</span>
+            @endif
+            @if ($product['seller_city'])
+                <span class="product-card__seller-meta">{{ $product['seller_city'] }}</span>
             @endif
         </div>
+
         <div class="price-row">
             @if ($product['has_variant_price_range'])
                 <small>From</small>
@@ -101,90 +87,32 @@ SVG;
                 <span>{{ $product['discount'] }}% off</span>
             @endif
         </div>
-        <div class="product-card__delivery">
-            <i class="fa-solid fa-truck-fast" aria-hidden="true"></i>
-            <span>{{ $product['delivery_label'] }}</span>
-        </div>
-        @unless ($compact)
-            <div class="product-card__options">
-                @if ($product['has_colour_options'])
-                    <span>{{ array_key_first($product['colours']) }}</span>
-                @endif
-                @if ($product['has_size_options'])
-                    <span>{{ $product['sizes'][0] }}</span>
-                @endif
-                @if ($product['has_custom_options'])
-                    <span>{{ $product['option_name'] }}: {{ $product['option_values'][0] ?? $product['sizes'][0] }}</span>
-                @endif
-            </div>
-        @endunless
+
+        <div class="product-card__availability">{{ $product['stock_label'] }}</div>
+        @if (filled($product['delivery_label']))
+            <div class="product-card__delivery">{{ $product['delivery_label'] }}</div>
+        @endif
+
         <div class="product-card__actions">
             @if ($product['available'])
-                @if ($compact)
-                    <button
-                        class="button button--primary add-to-cart-button"
-                        type="button"
-                        data-add-to-cart
-                        data-slug="{{ $product['slug'] }}"
-                        data-colour="{{ array_key_first($product['colours']) }}"
-                        data-size="{{ $product['sizes'][0] }}"
-                        data-quantity="1"
-                    >
-                        {!! $bagIcon !!}
-                        <span data-add-to-cart-label>Add to Cart</span>
+                <button class="button button--primary add-to-cart-button" type="button" data-add-to-cart data-slug="{{ $product['slug'] }}" data-colour="{{ array_key_first($product['colours']) }}" data-size="{{ $product['sizes'][0] }}" data-quantity="1">
+                    {!! $bagIcon !!}
+                    <span data-add-to-cart-label>Add to Cart</span>
+                </button>
+                <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
+                    @csrf
+                    <input type="hidden" name="slug" value="{{ $product['slug'] }}">
+                    <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
+                    <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button class="button button--buy-now" type="submit" data-buy-now-submit>
+                        <svg class="product-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z"/></svg>
+                        <span data-buy-now-label>Buy Now</span>
                     </button>
-                    <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
-                        @csrf
-                        <input type="hidden" name="slug" value="{{ $product['slug'] }}">
-                        <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
-                        <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
-                        <input type="hidden" name="quantity" value="1">
-                        <button class="button button--buy-now" type="submit" data-buy-now-submit>
-                            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
-                            <span data-buy-now-label>Buy Now</span>
-                        </button>
-                    </form>
-                @else
-                    <button
-                        class="button button--primary add-to-cart-button"
-                        type="button"
-                        data-add-to-cart
-                        data-slug="{{ $product['slug'] }}"
-                        data-colour="{{ array_key_first($product['colours']) }}"
-                        data-size="{{ $product['sizes'][0] }}"
-                        data-quantity="1"
-                    >
-                        {!! $bagIcon !!}
-                        <span>Add to Cart</span>
-                    </button>
-                    <form class="product-card__buy-now" method="POST" action="{{ route('cart.buy-now') }}" data-buy-now-form>
-                        @csrf
-                        <input type="hidden" name="slug" value="{{ $product['slug'] }}">
-                        <input type="hidden" name="colour" value="{{ array_key_first($product['colours']) }}">
-                        <input type="hidden" name="size" value="{{ $product['sizes'][0] }}">
-                        <input type="hidden" name="quantity" value="1">
-                        <button class="button button--buy-now" type="submit" data-buy-now-submit>
-                            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
-                            <span>Buy Now</span>
-                        </button>
-                    </form>
-                @endif
+                </form>
             @else
                 <button class="button button--ghost" type="button" disabled>Out of Stock</button>
             @endif
         </div>
-        @unless ($compact)
-            <div class="product-card__utility">
-                <button class="icon-button" type="button" data-wishlist data-slug="{{ $product['slug'] }}" aria-label="Add {{ $product['name'] }} to wishlist">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
-                </button>
-                <button class="icon-button" type="button" data-share-url="{{ route('products.show', $product['slug']) }}" data-share-title="{{ $product['name'] }}" aria-label="Share {{ $product['name'] }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>
-                </button>
-                <a class="icon-button" href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode("Hello Sushako Shopping,\n\nI would like to enquire about:\n".$product['name']."\n".route('products.show', $product['slug'])."\nVariant: ".array_key_first($product['colours'])." / ".$product['sizes'][0]."\nPrice: INR ".$product['selling_price']) }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp enquiry for {{ $product['name'] }}">
-                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.02 3.2A12.67 12.67 0 0 0 5.1 22.26L3.2 29l6.9-1.82A12.68 12.68 0 1 0 16.02 3.2Zm-4.16 7.7c-.25 0-.64.1-.97.46-.34.37-1.28 1.25-1.28 3.05 0 1.79 1.31 3.53 1.49 3.77.18.24 2.53 4.05 6.25 5.52 3.08 1.22 3.72.98 4.39.92.67-.06 2.16-.88 2.46-1.74.31-.86.31-1.6.22-1.75-.09-.15-.33-.24-.7-.43-.36-.18-2.16-1.06-2.49-1.18-.33-.13-.58-.18-.82.18-.24.37-.94 1.18-1.15 1.43-.21.24-.42.27-.79.09-.36-.18-1.54-.57-2.94-1.82-1.09-.97-1.82-2.17-2.03-2.54-.21-.36-.02-.56.16-.74.16-.16.36-.42.55-.64.18-.21.24-.36.36-.61.12-.24.06-.46-.03-.64-.09-.18-.82-1.98-1.12-2.71-.3-.71-.6-.61-.82-.62h-.74Z"/></svg>
-                </a>
-            </div>
-        @endunless
     </div>
 </article>

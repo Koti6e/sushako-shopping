@@ -1,5 +1,5 @@
 <x-layouts.admin title="Approval Center - Sushako Admin">
-    <x-admin.shell eyebrow="Marketplace" title="Approval Center" subtitle="One inbox for seller, category, product, store verification and settlement approvals." badge="Control Queue">
+    <x-admin.shell eyebrow="Marketplace" title="Operational Reviews" subtitle="One inbox for category, store verification and settlement work that still requires Superadmin action." badge="Control Queue">
         <x-slot:actions>
             <x-admin.action :href="route('admin.sellers.index')" tone="secondary" icon="fa-solid fa-store">Sellers</x-admin.action>
             <x-admin.action :href="route('admin.settlements.index')" tone="primary" icon="fa-solid fa-indian-rupee-sign">Settlements</x-admin.action>

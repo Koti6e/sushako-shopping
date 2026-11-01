@@ -8,6 +8,10 @@
             $order->payment_method === 'cod' => 'Cash on Delivery',
             default => str($order->payment_status)->replace('_', ' ')->title(),
         };
+        $sellerNames = $order->items->pluck('vendor.store_display_name')->filter()->unique()->values();
+        $sellerNames = $sellerNames->isNotEmpty()
+            ? $sellerNames
+            : $order->items->pluck('vendor.business_name')->filter()->unique()->values();
         $deliveryLabel = null;
     @endphp
 
@@ -32,8 +36,7 @@
                 <p class="eyebrow">Sushako Shopping</p>
                 <h1 id="order-confirmed-title">Order Confirmed</h1>
                 <p class="receipt-copy">Thank you for shopping with Sushako.</p>
-                <p class="receipt-copy">We're bringing something to you. Your order is about to begin its journey.</p>
-                <p class="receipt-copy">The seller will contact you shortly to confirm shipping and delivery details.</p>
+                <p class="receipt-copy">Your order is recorded. Follow fulfilment and delivery updates from Track Your Order.</p>
                 <span class="sr-only">Hey {{ $order->customer_name }}, your order placed successfully. Order Details. Download Invoice. COD - customer has to pay at delivery. Track Your Order. View shared delivery location.</span>
                 @if ($order->payment_status === 'paid')
                     <span class="sr-only">Paid online via Razorpay. Invoice is marked as paid. Amount Paid. Download Invoice.</span>
@@ -75,6 +78,26 @@
                         <dd>&#8377;{{ number_format($order->total_amount) }}</dd>
                     </div>
                 </dl>
+
+                @if ($sellerNames->isNotEmpty())
+                    <section class="receipt-sellers" aria-label="Your sellers">
+                        <h2>Seller{{ $sellerNames->count() === 1 ? '' : 's' }}</h2>
+                        <p>{{ $sellerNames->join(', ') }}</p>
+                    </section>
+                @endif
+
+                <section class="receipt-items" aria-label="Order items">
+                    <h2>Order Summary</h2>
+                    @foreach ($order->items as $item)
+                        <div>
+                            <span>{{ $item->product_name }} · Qty {{ $item->quantity }}</span>
+                            <strong>&#8377;{{ number_format($item->line_total) }}</strong>
+                        </div>
+                    @endforeach
+                    <div class="receipt-items__total"><span>Total</span><strong>&#8377;{{ number_format($order->total_amount) }}</strong></div>
+                </section>
+
+                <p class="receipt-copy">Need help with this order? <a href="https://wa.me/{{ config('services.whatsapp.support_number') }}?text={{ rawurlencode('Hello Sushako Shopping, I need help with order '.$order->order_number) }}" target="_blank" rel="noopener noreferrer">Contact Sushako Support</a>.</p>
 
                 <div class="receipt-actions" aria-label="Order actions">
                     <a href="{{ route('orders.track', ['query' => $order->order_number]) }}" aria-label="Track order {{ $order->order_number }}">

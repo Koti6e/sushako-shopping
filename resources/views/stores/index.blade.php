@@ -1,4 +1,4 @@
-<x-layouts.customer title="Marketplace Stores - Sushako">
+<x-layouts.customer title="Marketplace Stores - Sushako" description="Explore Sushako marketplace sellers with products currently available to customers.">
     <section class="shop-collection-intro">
         <div class="site-shell">
             <nav class="breadcrumbs" aria-label="Breadcrumb">

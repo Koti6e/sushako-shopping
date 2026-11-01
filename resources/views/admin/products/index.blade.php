@@ -27,7 +27,7 @@
 
                         {{-- Product Image --}}
                         <div class="admin-product-thumb">
-                            <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name']" />
+                            <x-product.image :src="data_get($product, 'images.0.path')" :alt="$product['name']" :category="$product['category'] ?? null" />
                         </div>
 
                         {{-- Product Information --}}
@@ -61,7 +61,7 @@
                                 class="button button--primary"
                                 href="{{ route('admin.products.edit', $product['slug']) }}"
                             >
-                                Edit
+                                {{ !empty($product['is_official']) ? 'Edit' : 'View' }}
                             </a>
                         </div>
 

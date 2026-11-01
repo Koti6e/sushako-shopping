@@ -35,10 +35,11 @@
                             @foreach ($job->candidates as $candidate)
                                 <details><summary>{{ data_get($candidate->payload, 'name', 'Unnamed product') }} · {{ str($candidate->status)->title() }}</summary>
                                     <p>{{ data_get($candidate->payload, 'description') }}</p>
-                                    @if ($candidate->status !== 'published')
+                                    @if (! in_array($candidate->status, ['imported_draft'], true))
                                         <form method="POST" action="{{ route('seller.imports.candidates.approve', $candidate) }}">@csrf<input type="number" name="category_id" value="{{ data_get($candidate->category_suggestion, 'category_id') }}" placeholder="Master category ID"><button type="submit">Approve Candidate</button></form>
                                     @endif
                                     @if ($candidate->status === 'approved')<form method="POST" action="{{ route('seller.imports.candidates.publish', $candidate) }}">@csrf<button type="submit">Import as Draft</button></form>@endif
+                                    @if ($candidate->status === 'imported_draft')<p class="status-banner">Imported as a seller draft. Final product publishing remains under seller control.</p>@endif
                                 </details>
                             @endforeach
                             </div>

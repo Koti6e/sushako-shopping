@@ -1,4 +1,7 @@
-@props(['title' => 'Sushako Shopping'])
+@props([
+    'title' => 'Sushako Shopping',
+    'description' => 'Discover products from independent marketplace sellers on Sushako Shopping.',
+])
 @php
     $authUser = auth()->user();
     $accountHref = route('orders.track');
@@ -43,10 +46,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sushako Shopping - Premium own-store ecommerce with secure payments and support">
+    <meta name="description" content="{{ $description }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta property="og:title" content="{{ $title ?? 'Sushako Shopping' }}">
-    <meta property="og:description" content="Premium multi-category shopping from Sushako with secure payments and support">
+    <meta property="og:description" content="{{ $description }}">
     <meta property="og:image" content="{{ asset('assets/brand/sushako-shopping-official-full.png') }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
@@ -216,12 +219,12 @@
                 </a>
                 <nav class="header-actions" aria-label="Account navigation">
                 <a class="header-icon-button" href="{{ route('shop') }}?wishlist=1" aria-label="Wishlist" title="Wishlist">
-                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
                     <span class="action-badge" data-wishlist-count>{{ $wishlistCount }}</span>
                 </a>
                 <details class="account-dropdown" data-account-dropdown>
                     <summary class="header-icon-button" aria-label="{{ $accountLabel }}" title="{{ $accountLabel }}">
-                        <i class="fa-regular fa-user" aria-hidden="true"></i>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.2 3.2-5 7-5s6.2 1.8 7 5"/></svg>
                     </summary>
                     <div class="account-dropdown__panel">
                         @guest
@@ -245,7 +248,7 @@
                     </div>
                 </details>
                 <a class="header-icon-button" href="{{ route('cart.empty') }}" aria-label="Shopping cart" title="Cart">
-                    <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L20 8H6"/><circle cx="10" cy="19" r="1.2"/><circle cx="17" cy="19" r="1.2"/></svg>
                     <span class="action-badge" data-cart-count>{{ $cartCount }}</span>
                 </a>
                 @auth
@@ -260,23 +263,25 @@
                 </a>
             </div>
             <a class="mobile-header-action mobile-header-action--account" href="{{ $accountHref }}" aria-label="{{ $accountLabel }}">
-                <i class="fa-regular fa-user" aria-hidden="true"></i>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.2 3.2-5 7-5s6.2 1.8 7 5"/></svg>
                 <span class="mobile-header-action__text">Account</span>
             </a>
             <a class="mobile-header-action mobile-header-action--orders" href="{{ route('orders.track') }}" aria-label="Track order">
-                <i class="fa-solid fa-route" aria-hidden="true"></i>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h9a3 3 0 0 1 3 3v8"/><path d="m14 13 3 3 3-3"/><path d="M5 5v14h4"/></svg>
                 <span class="mobile-header-action__text">Track Order</span>
             </a>
             <a class="mobile-header-action mobile-header-action--seller" href="{{ route('seller.login') }}" aria-label="Become a seller">
-                <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v11H4z"/><path d="M9 8V5h6v3M4 12h16M10 12v2h4v-2"/></svg>
                 <span class="mobile-header-action__text">Become Seller</span>
             </a>
             <a class="mobile-header-action mobile-header-action--cart" href="{{ route('cart.empty') }}" aria-label="Open cart">
-                <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L20 8H6"/><circle cx="10" cy="19" r="1.2"/><circle cx="17" cy="19" r="1.2"/></svg>
                 <span class="mobile-header-action__badge" data-cart-count>{{ $cartCount }}</span>
             </a>
         </div>
     </header>
+
+    <x-cookie-consent-banner />
 
     <main>
         {{ $slot }}
@@ -331,8 +336,6 @@
         <span><strong>Cart · <span data-cart-float-count>{{ $cartCount }} {{ $cartCount === 1 ? 'item' : 'items' }}</span></strong><small data-cart-float-subtotal>₹{{ number_format($cartSubtotal) }}</small></span>
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
     </a>
-
-    <x-cookie-consent-banner />
 
     <script>
         (() => {

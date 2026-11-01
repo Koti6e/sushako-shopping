@@ -1,4 +1,4 @@
-<x-layouts.customer title="{{ $vendor->store_display_name ?: $vendor->business_name }} - Sushako Store">
+<x-layouts.customer :title="($vendor->store_display_name ?: $vendor->business_name).' - Sushako Store'" :description="$vendor->store_description ?: 'Browse products currently published by this Sushako marketplace store.'">
     <section class="seller-storefront-hero">
         @if ($vendor->store_banner_path)
             <img src="{{ asset('storage/'.$vendor->store_banner_path) }}" alt="{{ $vendor->store_display_name ?: $vendor->business_name }} store banner" loading="eager" decoding="async">

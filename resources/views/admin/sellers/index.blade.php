@@ -22,7 +22,7 @@
         <section class="admin-control-page admin-sellers-workspace">
             <div class="admin-control-metrics admin-sellers-metrics">
                 <a href="{{ route('admin.sellers.index') }}"><span>Total sellers</span><strong>{{ number_format($summary['total']) }}</strong></a>
-                <a href="{{ route('admin.sellers.index', ['filter' => 'approval_pending']) }}"><span>Awaiting approval</span><strong>{{ number_format($summary['approval_pending']) }}</strong></a>
+                <a href="{{ route('admin.sellers.index', ['filter' => 'approval_pending']) }}"><span>Needs review</span><strong>{{ number_format($summary['approval_pending']) }}</strong></a>
                 <a href="{{ route('admin.sellers.index', ['filter' => 'onboarding_incomplete']) }}"><span>Setup incomplete</span><strong>{{ number_format($summary['setup_incomplete']) }}</strong></a>
                 <a href="{{ route('admin.sellers.index', ['filter' => 'bank_pending']) }}"><span>Bank review</span><strong>{{ number_format($summary['bank_pending']) }}</strong></a>
                 <a href="{{ route('admin.sellers.index', ['status' => \App\Models\Vendor::STATUS_ACTIVE]) }}"><span>Active stores</span><strong>{{ number_format($summary['active']) }}</strong></a>
@@ -161,7 +161,7 @@
                                 <div><dt>Location</dt><dd>{{ $locationText }}</dd></div>
                                 <div><dt>Plan</dt><dd>{{ $planName }}</dd></div>
                                 <div><dt>Store</dt><dd>{{ $label($vendor->store_status) }}</dd></div>
-                                <div><dt>Approval</dt><dd>{{ $label($vendor->approval_status) }}</dd></div>
+                                <div><dt>Account review</dt><dd>{{ $label($vendor->approval_status) }}</dd></div>
                                 <div><dt>Products</dt><dd>{{ number_format($vendor->products_count) }} total · {{ number_format($vendor->active_products_count) }} active</dd></div>
                                 <div><dt>Sales</dt><dd>{{ $money($vendor->gross_sales) }}</dd></div>
                                 <div><dt>Settlement due</dt><dd>{{ $money($vendor->pending_settlement_total) }}</dd></div>
