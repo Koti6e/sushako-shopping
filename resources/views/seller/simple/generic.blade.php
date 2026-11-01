@@ -5,7 +5,7 @@
         'support' => ['Support Tickets' => '0 Open', 'Announcements' => 'No new updates', 'FAQs' => 'Available', 'Contact Support' => config('mail.from.address')],
         'marketing' => ['Campaigns' => 'Coming soon', 'Top Categories' => 'No data', 'Best Selling Products' => 'No data'],
         'labels' => ['Self Shipping' => 'Enabled', 'Label Format' => 'Sushako Standard', 'KYC Verification' => 'Reserved'],
-        default => ['Current Plan' => str($vendor->current_plan ?: 'free')->title(), 'Store Status' => str($vendor->store_visibility ?: 'draft')->title(), 'Approval Status' => str($vendor->approval_status ?: 'registered')->replace('_', ' ')->title()],
+        default => ['Marketplace Access' => 'Free for all approved sellers', 'Store Status' => str($vendor->store_visibility ?: 'draft')->title(), 'Approval Status' => str($vendor->approval_status ?: 'registered')->replace('_', ' ')->title()],
     };
 @endphp
 <x-layouts.seller title="{{ $title }}">

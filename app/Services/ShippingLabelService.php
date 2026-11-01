@@ -131,29 +131,14 @@ class ShippingLabelService
 
     public function labelBrandingForVendor(Vendor $vendor, array $options = []): array
     {
-        $plan = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: Vendor::PLAN_FREE);
         $sellerName = $vendor->store_display_name ?: $vendor->business_name ?: $vendor->user?->name ?: 'Seller';
 
-        if (in_array($plan, [Vendor::PLAN_STARTER, Vendor::PLAN_PREMIUM], true)) {
-            return [
-                'plan' => $plan,
-                'label' => 'Seller Branding & Labelling',
-                'brand_mode' => ShippingLabel::BRAND_SELLER,
-                'seller_name' => $options['seller_name'] ?? $sellerName,
-                'seller_logo_path' => $options['seller_logo_path'] ?? $vendor->business_logo_path,
-                'seller_address' => $options['seller_address'] ?? ($vendor->pickup_address ?: $vendor->address_line_1 ?: $sellerName),
-                'seller_gst' => $options['seller_gst'] ?? $vendor->gstin,
-                'seller_contact' => $options['seller_contact'] ?? ($vendor->phone ?: config('services.whatsapp.support_number')),
-                'seller_return_address' => $options['seller_return_address'] ?? ($vendor->return_address ?: $vendor->pickup_address ?: 'Return to '.$sellerName),
-            ];
-        }
-
         return [
-            'plan' => Vendor::PLAN_FREE,
-            'label' => 'Sushako Branding & Labelling',
-            'brand_mode' => ShippingLabel::BRAND_SUSHAKO,
+            'plan' => null,
+            'label' => 'Seller Branding & Labelling',
+            'brand_mode' => ShippingLabel::BRAND_SELLER,
             'seller_name' => $sellerName,
-            'seller_logo_path' => null,
+            'seller_logo_path' => $options['seller_logo_path'] ?? $vendor->business_logo_path,
             'seller_address' => $vendor->pickup_address ?: $vendor->address_line_1 ?: 'Sushako Shopping',
             'seller_gst' => $vendor->gstin,
             'seller_contact' => $vendor->phone ?: config('services.whatsapp.support_number'),

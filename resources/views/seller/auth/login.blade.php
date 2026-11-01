@@ -18,7 +18,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="Sign in to the Sushako Seller Hub to manage products, orders, plans, and settlements.">
+    <meta name="description" content="Sign in to the Sushako Seller Hub to manage products, orders, catalogue intelligence, and settlements.">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/brand/sushako-shopping-crest-favicon-16.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('assets/brand/sushako-shopping-crest-apple-touch-icon.png') }}">

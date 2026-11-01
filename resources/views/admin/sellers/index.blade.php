@@ -13,7 +13,7 @@
 @endphp
 
 <x-layouts.admin title="Sellers - Admin">
-    <x-admin.shell eyebrow="Seller Platform" title="Seller Management" subtitle="Review seller readiness, plan health, payments, settlements and store activation from one operations surface.">
+    <x-admin.shell eyebrow="Seller Platform" title="Seller Management" subtitle="Review seller readiness, verification, settlements and store activation from one operations surface.">
         <x-slot:actions>
             <x-admin.action :href="route('admin.sellers.commissions.index')" tone="secondary" icon="fa-solid fa-percent">Commission Rules</x-admin.action>
             <x-admin.action :href="route('admin.sellers.banners.index')" tone="primary" icon="fa-solid fa-images">Seller Banners</x-admin.action>
@@ -41,15 +41,6 @@
                         <option value="">Any status</option>
                         @foreach ([\App\Models\Vendor::STATUS_ACTIVE, \App\Models\Vendor::STATUS_INACTIVE, \App\Models\Vendor::STATUS_SUSPENDED, \App\Models\Vendor::STATUS_REJECTED, \App\Models\Vendor::STATUS_CLOSED] as $option)
                             <option value="{{ $option }}" @selected($filters['status'] === $option)>{{ $label($option) }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <label>
-                    <span>Plan</span>
-                    <select name="plan">
-                        <option value="">Any plan</option>
-                        @foreach ([\App\Models\Vendor::PLAN_FREE, \App\Models\Vendor::PLAN_GROWTH, \App\Models\Vendor::PLAN_ENTERPRISE] as $option)
-                            <option value="{{ $option }}" @selected($filters['plan'] === $option)>{{ $label($option) }}</option>
                         @endforeach
                     </select>
                 </label>
@@ -100,7 +91,6 @@
                     <div class="admin-seller-list__row admin-seller-list__row--head">
                         <span>Seller</span>
                         <span>Location</span>
-                        <span>Plan</span>
                         <span>Status</span>
                         <span>Products</span>
                         <span>Sales</span>
@@ -110,8 +100,6 @@
                     @foreach ($vendors as $vendor)
                         @php
                             $readiness = $accounts->readiness($vendor);
-                            $snapshot = $vendor->selected_plan_snapshot ?: [];
-                            $planName = $vendor->selectedSellerPlan?->name ?: data_get($snapshot, 'name', $label($vendor->selected_plan_slug ?: $vendor->selected_plan ?: $vendor->current_plan));
                             $locationText = collect([$vendor->city, $vendor->state, $vendor->postal_code])->filter()->join(', ') ?: 'Location missing';
                         @endphp
                         <article class="admin-seller-list__row">
@@ -120,7 +108,6 @@
                                 <strong>{{ $vendor->business_name ?: 'Unnamed seller' }}<small>{{ $vendor->user?->name ?: 'Owner missing' }} · #{{ $vendor->id }}</small></strong>
                             </a>
                             <span>{{ $locationText }}</span>
-                            <span>{{ $planName }}</span>
                             <span><x-ui.badge :status="$statusTone[$vendor->status] ?? 'neutral'">{{ $label($vendor->status) }}</x-ui.badge><small>{{ $readiness['percentage'] }}% setup</small></span>
                             <span>{{ number_format($vendor->products_count) }}<small>{{ number_format($vendor->active_products_count) }} active</small></span>
                             <span>{{ $money($vendor->gross_sales) }}<small>{{ $money($vendor->commission_total) }} commission</small></span>
@@ -136,8 +123,6 @@
                     @foreach ($vendors as $vendor)
                         @php
                             $payment = $vendor->onboardingPayments->first();
-                            $snapshot = $vendor->selected_plan_snapshot ?: [];
-                            $planName = $vendor->selectedSellerPlan?->name ?: data_get($snapshot, 'name', $label($vendor->selected_plan_slug ?: $vendor->selected_plan ?: $vendor->current_plan));
                             $readiness = $accounts->readiness($vendor);
                             $missing = array_slice($readiness['missing_mandatory'], 0, 3);
                             $locationText = collect([$vendor->city, $vendor->state, $vendor->postal_code])->filter()->join(', ') ?: 'Location missing';
@@ -159,7 +144,7 @@
 
                             <dl class="admin-seller-card__facts">
                                 <div><dt>Location</dt><dd>{{ $locationText }}</dd></div>
-                                <div><dt>Plan</dt><dd>{{ $planName }}</dd></div>
+                                <div><dt>Marketplace access</dt><dd>Free seller access</dd></div>
                                 <div><dt>Store</dt><dd>{{ $label($vendor->store_status) }}</dd></div>
                                 <div><dt>Account review</dt><dd>{{ $label($vendor->approval_status) }}</dd></div>
                                 <div><dt>Products</dt><dd>{{ number_format($vendor->products_count) }} total · {{ number_format($vendor->active_products_count) }} active</dd></div>

@@ -13,6 +13,7 @@ use App\Services\CatalogueAuthorization;
 use App\Services\SellerDomainImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DomainImportController extends Controller
@@ -28,13 +29,36 @@ class DomainImportController extends Controller
     {
         $vendor = $this->guard($request, 'catalogue.sources.view');
 
+        // The catalogue tables are deployed separately from the application code.
+        // Keep the Import Centre available with an actionable empty state while
+        // that migration is pending instead of turning the seller dashboard into
+        // an HTTP 500.
+        if (! $this->catalogueSchemaReady()) {
+            return view('seller.imports.index', [
+                'vendor' => $vendor,
+                'imports' => collect(),
+                'discoverySessions' => collect(),
+                'matchCounts' => collect(),
+                'matches' => collect(),
+                'catalogueSchemaPending' => true,
+            ]);
+        }
+
         return view('seller.imports.index', [
             'vendor' => $vendor,
             'imports' => $vendor->domainImports()->latest()->get(),
             'discoverySessions' => CatalogueDiscoverySession::query()->where('vendor_id', $vendor->id)->latest()->limit(10)->get(),
             'matchCounts' => CatalogueProductMatch::query()->where('vendor_id', $vendor->id)->selectRaw("outcome, count(*) as aggregate")->groupBy('outcome')->pluck('aggregate', 'outcome'),
             'matches' => CatalogueProductMatch::query()->where('vendor_id', $vendor->id)->with(['extractedProduct.session.source', 'product'])->latest()->limit(30)->get(),
+            'catalogueSchemaPending' => false,
         ]);
+    }
+
+    private function catalogueSchemaReady(): bool
+    {
+        return Schema::hasTable('seller_domain_imports')
+            && Schema::hasTable('catalogue_discovery_sessions')
+            && Schema::hasTable('catalogue_product_matches');
     }
 
     public function categories(Request $request, CatalogueDiscoverySession $session): View
@@ -63,6 +87,9 @@ class DomainImportController extends Controller
     public function store(Request $request, SellerDomainImportService $imports): RedirectResponse
     {
         $vendor = $this->guard($request, 'catalogue.sources.create');
+        if (! $this->catalogueSchemaReady()) {
+            return back()->withErrors(['domain' => 'Catalogue Intelligence is waiting for its database migration. Please try again after it is completed.']);
+        }
         $data = $request->validate(['domain' => ['required', 'string', 'max:255']]);
         $imports->register($vendor, $data['domain']);
 
@@ -141,6 +168,9 @@ class DomainImportController extends Controller
     public function monitoring(Request $request, SellerDomainImportService $imports): RedirectResponse
     {
         $vendor = $this->guard($request, 'catalogue.monitoring.manage');
+        if (! $this->catalogueSchemaReady()) {
+            return back()->withErrors(['monitoring' => 'Catalogue Intelligence is waiting for its database migration. Please try again after it is completed.']);
+        }
         $data = $request->validate(['source_id' => ['required', 'integer'], 'frequency' => ['required', 'in:disabled,daily,weekly,monthly'], 'new_products' => ['boolean'], 'price_changes' => ['boolean'], 'image_changes' => ['boolean'], 'availability_changes' => ['boolean']]);
         $source = SellerDomainImport::query()->where('vendor_id', $vendor->id)->findOrFail($data['source_id']);
         $imports->saveMonitoring($vendor, $source, $data);

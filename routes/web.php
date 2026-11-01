@@ -28,6 +28,7 @@ use App\Http\Controllers\Seller\DomainImportController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\EarningsController as SellerEarningsController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
+use App\Http\Controllers\Seller\LegacySubscriptionController;
 use App\Http\Controllers\Seller\ModuleController as SellerModuleController;
 use App\Http\Controllers\Seller\OnboardingController as SellerOnboardingController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
@@ -231,15 +232,15 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller.profile'])
     Route::get('/onboarding/step/{step}', [SellerOnboardingController::class, 'step'])->name('onboarding.step');
     Route::post('/onboarding', [SellerOnboardingController::class, 'store'])->name('onboarding.store');
     Route::post('/onboarding/autosave', [SellerOnboardingController::class, 'autosave'])->name('onboarding.autosave');
-    Route::get('/onboarding/plan', [SellerOnboardingController::class, 'showPlanSelection'])->name('onboarding.plan');
-    Route::post('/onboarding/plan', [SellerOnboardingController::class, 'selectPlan'])->name('onboarding.plan.select');
+    // Legacy subscription URLs remain harmless redirects for old bookmarks.
+    Route::match(['GET', 'POST'], '/onboarding/plan', [LegacySubscriptionController::class, 'redirect'])->name('onboarding.plan');
+    Route::match(['GET', 'POST'], '/onboarding/payment', [LegacySubscriptionController::class, 'redirect'])->name('onboarding.payment');
+    Route::post('/onboarding/payment/retry', [LegacySubscriptionController::class, 'redirect'])->name('onboarding.payment.retry');
+    Route::post('/onboarding/payment/confirm', [LegacySubscriptionController::class, 'redirect'])->name('onboarding.payment.confirm');
+    Route::get('/onboarding/success', [LegacySubscriptionController::class, 'redirect'])->name('onboarding.success');
     Route::post('/onboarding/submit-review', [SellerOnboardingController::class, 'submitForReview'])->name('onboarding.submit-review');
     Route::get('/onboarding/review', [SellerOnboardingController::class, 'review'])->name('onboarding.review');
     Route::post('/onboarding/review', [SellerOnboardingController::class, 'activateFromReview'])->name('onboarding.review.activate');
-    Route::get('/onboarding/payment', [SellerOnboardingController::class, 'payment'])->name('onboarding.payment');
-    Route::post('/onboarding/payment/retry', [SellerOnboardingController::class, 'retryPayment'])->name('onboarding.payment.retry');
-    Route::post('/onboarding/payment/confirm', [SellerOnboardingController::class, 'confirmPayment'])->name('onboarding.payment.confirm');
-    Route::get('/onboarding/success', [SellerOnboardingController::class, 'success'])->name('onboarding.success');
 
     Route::middleware(['seller.active', 'seller.onboarded'])->group(function (): void {
         Route::post('/publish', [SellerOnboardingController::class, 'publish'])->name('publish');
@@ -269,8 +270,8 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller.profile'])
         Route::get('/settlements/{settlement}', [SellerSettlementController::class, 'show'])->name('settlements.show');
         Route::get('/settlements/{settlement}/statement', [SellerSettlementController::class, 'statement'])->name('settlements.statement');
         Route::put('/settlements', [SellerModuleController::class, 'updateSettlements'])->name('settlements.update');
-        Route::get('/plans', [SellerModuleController::class, 'generic'])->defaults('module', 'plans')->name('plans.index');
-        Route::post('/plans/renew', [SellerModuleController::class, 'renewPlan'])->name('plans.renew');
+        Route::get('/plans', [LegacySubscriptionController::class, 'redirect'])->name('plans.index');
+        Route::post('/plans/renew', [LegacySubscriptionController::class, 'redirect'])->name('plans.renew');
         Route::get('/shipping', [SellerShippingController::class, 'index'])->name('shipping.index');
         Route::put('/shipping', [SellerShippingController::class, 'update'])->name('shipping.update');
         Route::post('/shipping/zones', [SellerShippingController::class, 'addZone'])->name('shipping.zones.store');

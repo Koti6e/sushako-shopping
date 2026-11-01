@@ -47,11 +47,10 @@
                 </article>
 
                 <article class="admin-enterprise-card admin-seller-profile__subscription-card">
-                    <h2>Subscription & Verification</h2>
+                    <h2>Seller Access & Verification</h2>
                     <dl>
-                        <div><dt>Plan</dt><dd>{{ str($vendor->current_plan ?: $vendor->selected_plan ?: 'free')->title() }}</dd></div>
-                        <div><dt>Plan Status</dt><dd>{{ str($vendor->plan_status ?: 'pending')->replace('_', ' ')->title() }}</dd></div>
-                        <div><dt>Payment</dt><dd>{{ str($vendor->payment_status ?: 'not started')->replace('_', ' ')->title() }}</dd></div>
+                        <div><dt>Marketplace access</dt><dd>Free seller access</dd></div>
+                        <div><dt>Commission</dt><dd>2% on successful orders</dd></div>
                         <div><dt>Bank</dt><dd>{{ str($vendor->bank_verification_status ?: 'not submitted')->replace('_', ' ')->title() }}</dd></div>
                         <div><dt>Vacation Mode</dt><dd>{{ $vendor->vacation_starts_at ? 'Scheduled' : 'Off' }}</dd></div>
                     </dl>

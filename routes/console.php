@@ -8,5 +8,4 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('sellers:process-plan-expiries')->dailyAt('02:15')->withoutOverlapping();
 Schedule::command('catalogue:monitor')->hourly()->withoutOverlapping();

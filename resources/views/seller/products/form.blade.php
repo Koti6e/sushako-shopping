@@ -160,7 +160,7 @@
                         <span>Seller Economics</span>
                         <p>Revenue per Sale: <strong data-econ-revenue>Rs 0</strong> · Product Cost: <strong data-econ-cost>Rs 0</strong> · Sushako Commission: <strong data-econ-commission>Rs 1</strong></p>
                         <p>Seller Receives: <strong data-econ-receives>Rs 0</strong> · Estimated Profit: <strong data-econ-profit>Rs 0</strong> · Profit Margin: <strong data-econ-margin>0%</strong></p>
-                        <small>Free Plan uses server-side Rs 1 commission per item. COD has no Razorpay online payment charge.</small>
+                        <small>All sellers pay a 2% Sushako marketplace commission on successful orders. COD has no Razorpay online payment charge.</small>
                     </div>
 
                     <label class="seller-product-toggle seller-product-field--full">

@@ -1,6 +1,11 @@
 <x-layouts.seller title="Import From Your Website">
     <x-seller.header title="Import From Your Website" subtitle="Bring your own catalog to Sushako for review before publishing." :vendor="$vendor" />
     <section class="seller-content">
+        @if ($catalogueSchemaPending ?? false)
+            <div class="status-banner status-banner--error">
+                Catalogue Intelligence is being prepared for this seller workspace. Existing seller data is safe; the catalogue database migration must be completed before imports can be created or processed.
+            </div>
+        @endif
         @if (session('status'))<div class="status-banner">{{ session('status') }}</div>@endif
         @if ($errors->any())<div class="status-banner status-banner--error">{{ $errors->first() }}</div>@endif
         <section class="seller-card-grid seller-card-grid--metrics" aria-label="Catalogue intelligence overview">
@@ -21,13 +26,15 @@
             <p class="eyebrow">Catalogue Intelligence V2.0</p>
             <h2>Understand your catalogue before you import it.</h2>
             <p>Connect a public HTTPS store, review the intelligence report, then choose what enters Sushako. Discovery is bounded, seller-controlled and never auto-publishes products.</p>
-            <form class="seller-form-card" method="POST" action="{{ route('seller.imports.store') }}">
-                @csrf
-                <label>Website domain
-                    <input name="domain" type="url" placeholder="https://your-store.example" value="{{ old('domain') }}" required>
-                </label>
-                <button type="submit">Verify Domain</button>
-            </form>
+            @if (! ($catalogueSchemaPending ?? false))
+                <form class="seller-form-card" method="POST" action="{{ route('seller.imports.store') }}">
+                    @csrf
+                    <label>Website domain
+                        <input name="domain" type="url" placeholder="https://your-store.example" value="{{ old('domain') }}" required>
+                    </label>
+                    <button type="submit">Verify Domain</button>
+                </form>
+            @endif
         </section>
         <section class="seller-card-grid">
             @forelse ($imports as $import)

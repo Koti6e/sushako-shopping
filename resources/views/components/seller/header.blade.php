@@ -28,7 +28,7 @@
             <i class="fa-solid fa-table-columns" aria-hidden="true"></i>
         </button>
         <span class="seller-pill">{{ str($vendor?->store_status ?: 'setup_required')->replace('_', ' ')->title() }}</span>
-        <span class="seller-pill seller-pill--plan">{{ str($vendor?->current_plan ?: 'free')->title() }}</span>
+        <span class="seller-pill">2% marketplace commission</span>
         @if ($vendor?->onboarding_status === 'complete' && $vendor?->dashboard_access_enabled)
             <a href="{{ route('seller.products.create') }}"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Product</a>
         @endif

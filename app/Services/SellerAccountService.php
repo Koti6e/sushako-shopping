@@ -26,83 +26,31 @@ class SellerAccountService
 
     public function ensureSeedData(): void
     {
-        $this->ensureDefaultPlans();
         $this->ensureDefaultCategories();
     }
 
     public function plans(): array
     {
-        $this->ensureDefaultPlans();
-
-        if (Schema::hasTable('seller_plans') && SellerPlan::query()->where('status', SellerPlan::STATUS_ACTIVE)->exists()) {
-            return SellerPlan::query()
-                ->where('status', SellerPlan::STATUS_ACTIVE)
-                ->orderByRaw("case business_code when 'free' then 1 when 'starter' then 2 when 'premium' then 3 else 9 end")
-                ->get()
-                ->mapWithKeys(fn (SellerPlan $plan): array => [$plan->business_code ?: $plan->slug => $this->normalizePlan($plan)])
-                ->all();
-        }
-
         return [
             Vendor::PLAN_FREE => [
                 'id' => null,
                 'key' => Vendor::PLAN_FREE,
                 'slug' => Vendor::PLAN_FREE,
-                'name' => 'Free',
+                'name' => 'Free Marketplace Access',
                 'amount' => 0,
                 'price' => 0,
                 'currency' => config('services.razorpay.currency', 'INR'),
                 'billing_period' => 'none',
                 'commission_type' => 'percentage',
-                'commission_value' => 1,
-                'commission' => 'Rs 1 commission on every product unit sold',
+                'commission_value' => 2,
+                'commission' => '2% marketplace commission on successful orders',
                 'product_limit' => 'Unlimited',
                 'order_limit' => 'Unlimited',
                 'is_paid' => false,
                 'validity_days' => null,
                 'grace_days' => 0,
-                'features' => ['Sushako branding', 'Sushako labelling', 'Unlimited products', 'Rs 1 commission on every product unit sold', 'Self shipping', 'Draft to published workflow', 'Professional dashboard'],
-                'supporting_text' => 'Start free for unlimited time with a simple Rs 1 unit commission.',
-            ],
-            Vendor::PLAN_STARTER => [
-                'id' => null,
-                'key' => Vendor::PLAN_STARTER,
-                'slug' => 'growth',
-                'name' => 'Starter',
-                'amount' => (int) config('seller.plans.growth.amount', 999),
-                'price' => (int) config('seller.plans.growth.amount', 999),
-                'currency' => config('services.razorpay.currency', 'INR'),
-                'billing_period' => 'monthly',
-                'commission_type' => 'flat',
-                'commission_value' => 1,
-                'commission' => 'Rs 1 commission on every product unit sold',
-                'product_limit' => 1000,
-                'order_limit' => config('seller.plans.growth.order_limit', 'Unlimited'),
-                'is_paid' => true,
-                'validity_days' => 30,
-                'grace_days' => 0,
-                'features' => ['Seller branding', 'Seller labelling', 'Up to 1,000 products', 'Unlimited orders', 'Rs 1 commission on every product unit sold', 'Advanced seller dashboard', 'Professional storefront', 'Sales and order reports', 'Marketing tools', 'Priority support', 'One-month plan validity'],
-                'supporting_text' => 'Built for growing sellers with seller-owned branding and a simple Rs 1 unit platform fee.',
-            ],
-            Vendor::PLAN_PREMIUM => [
-                'id' => null,
-                'key' => Vendor::PLAN_PREMIUM,
-                'slug' => 'enterprise',
-                'name' => 'Premium',
-                'amount' => (int) config('seller.plans.enterprise.amount', 4999),
-                'price' => (int) config('seller.plans.enterprise.amount', 4999),
-                'currency' => config('services.razorpay.currency', 'INR'),
-                'billing_period' => 'monthly',
-                'commission_type' => 'none',
-                'commission_value' => 0,
-                'commission' => 'Zero Sushako platform commission',
-                'product_limit' => 'Unlimited',
-                'order_limit' => 'Unlimited',
-                'is_paid' => true,
-                'validity_days' => 30,
-                'grace_days' => 5,
-                'features' => ['Seller branding', 'Seller labelling', 'Unlimited products', 'Unlimited orders', 'Zero Sushako platform commission', 'Complete storefront branding', 'Advanced analytics', 'Premium reports', 'Marketing tools', 'Priority support', 'Settlement insights', 'Five-day renewal grace period', 'One-month plan validity'],
-                'supporting_text' => 'A complete premium selling suite for established businesses that need scale, branding, and operational control.',
+                'features' => ['Unlimited products', 'Catalogue Intelligence', 'Free storefront', 'Free seller dashboard', 'Free order management', 'Free shipping configuration', 'Free seller analytics', 'Optional featured product promotion at Rs 99 for seven days'],
+                'supporting_text' => 'Every approved seller receives the same free marketplace capabilities.',
             ],
         ];
     }
@@ -207,48 +155,29 @@ class SellerAccountService
 
     public function hasActivePlan(Vendor $vendor): bool
     {
-        $selectedPlan = $vendor->selected_plan_slug ?: $vendor->selected_plan;
-
-        if ($selectedPlan === Vendor::PLAN_FREE || $vendor->current_plan === Vendor::PLAN_FREE) {
-            return $vendor->payment_status === Vendor::PAYMENT_NOT_REQUIRED || $vendor->plan_status === Vendor::PLAN_ACTIVE;
-        }
-
-        return in_array(Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan), [Vendor::PLAN_STARTER, Vendor::PLAN_PREMIUM], true)
-            && $vendor->plan_status === Vendor::PLAN_ACTIVE
-            && $vendor->payment_status === Vendor::PAYMENT_PAID
-            && $vendor->plan_expires_at?->isFuture();
+        // Legacy method retained for integrations. Entitlements are no longer
+        // controlled by subscription state.
+        return true;
     }
 
     public function activateStarter(Vendor $vendor): Vendor
     {
         return DB::transaction(function () use ($vendor): Vendor {
-            $plan = $this->plans()[Vendor::PLAN_FREE];
-
-            SellerPlanPayment::query()->firstOrCreate([
-                'vendor_id' => $vendor->id,
-                'plan' => Vendor::PLAN_FREE,
-                'status' => Vendor::PLAN_ACTIVE,
-            ], [
-                'amount' => 0,
-                'activated_at' => now(),
-            ]);
-
             $vendor->forceFill([
-                'selected_plan' => Vendor::PLAN_FREE,
-                'selected_plan_id' => $plan['id'],
-                'selected_plan_slug' => Vendor::PLAN_FREE,
-                'selected_plan_snapshot' => $plan,
-                'plan_selected_at' => $vendor->plan_selected_at ?? now(),
+                // Legacy plan columns are retained for old records, but no
+                // subscription or payment row is created for new sellers.
                 'current_plan' => Vendor::PLAN_FREE,
+                'selected_plan' => null,
+                'selected_plan_slug' => null,
                 'plan_status' => Vendor::PLAN_ACTIVE,
                 'payment_status' => Vendor::PAYMENT_NOT_REQUIRED,
                 'razorpay_payment_status' => Vendor::PAYMENT_NOT_REQUIRED,
-                'plan_activated_at' => now(),
+                'plan_activated_at' => null,
                 'plan_expires_at' => null,
                 'grace_starts_at' => null,
                 'grace_ends_at' => null,
                 'onboarding_status' => 'complete',
-                'onboarding_step' => 3,
+                'onboarding_step' => 2,
                 'onboarding_completed_at' => $vendor->onboarding_completed_at ?? now(),
                 'dashboard_access_enabled' => true,
                 'store_status' => Vendor::STORE_LIVE,
@@ -257,7 +186,7 @@ class SellerAccountService
                 'approval_status' => Vendor::APPROVAL_ONBOARDING_COMPLETED,
             ])->save();
 
-            $this->audit($vendor, 'starter_plan_activated', 'Starter onboarding activated.');
+            $this->audit($vendor, 'free_seller_access_activated', 'Seller received free marketplace access.');
 
             return $vendor->refresh();
         });
@@ -334,20 +263,13 @@ class SellerAccountService
 
     public function productLimit(Vendor $vendor): ?int
     {
-        $plan = $this->planByKey($vendor->active_plan_code ?: $vendor->current_plan ?: Vendor::PLAN_FREE);
-
-        return ($plan && $plan['product_limit'] !== 'Unlimited') ? (int) $plan['product_limit'] : null;
+        return null;
     }
 
     public function assertProductCapacity(Vendor $vendor, ?int $exceptProductId = null): void
     {
-        $limit = $this->productLimit($vendor);
-        if ($limit === null) {
-            return;
-        }
-
-        $count = $vendor->products()->when($exceptProductId, fn ($query) => $query->whereKeyNot($exceptProductId))->count();
-        abort_if($count >= $limit, 422, "Your {$this->planByKey($vendor->active_plan_code ?: $vendor->current_plan ?: Vendor::PLAN_FREE)['name']} plan allows a maximum of {$limit} products.");
+        // All approved sellers receive unlimited product listings. Keep the
+        // compatibility hook so older callers remain safe and no-op.
     }
 
     public function activatePlan(Vendor $vendor, string $plan, ?string $reference = null): Vendor
@@ -428,7 +350,7 @@ class SellerAccountService
             ['key' => 'delivery_configuration', 'label' => 'Delivery Configuration', 'url' => route('seller.shipping.index'), 'complete' => filled($vendor->pickup_address) && filled($vendor->delivery_radius) && filled($vendor->shipping_commitment), 'weight' => 10, 'mandatory' => true],
             ['key' => 'storefront_category', 'label' => 'Seller Storefront Category', 'url' => route('seller.categories.index'), 'complete' => $vendor->storefrontCategories->isNotEmpty(), 'weight' => 10, 'mandatory' => true],
             ['key' => 'first_product', 'label' => 'At least one Product', 'url' => route('seller.products.create'), 'complete' => $hasProduct, 'weight' => 15, 'mandatory' => true],
-            ['key' => 'plan_activation', 'label' => 'Plan Selected and Active', 'url' => route('seller.plans.index'), 'complete' => $vendor->onboarding_status === 'complete' && $this->hasActivePlan($vendor), 'weight' => 10, 'mandatory' => true],
+            ['key' => 'marketplace_access', 'label' => 'Free Marketplace Access', 'url' => route('seller.onboarding'), 'complete' => $vendor->onboarding_status === 'complete', 'weight' => 10, 'mandatory' => true],
             ['key' => 'store_logo', 'label' => 'Store Logo', 'url' => route('seller.store-profile'), 'complete' => filled($vendor->business_logo_path ?: $vendor->logo), 'weight' => 5, 'mandatory' => false],
             ['key' => 'business_description', 'label' => 'Business Description', 'url' => route('seller.store-profile'), 'complete' => filled($vendor->store_description), 'weight' => 5, 'mandatory' => false],
             ['key' => 'working_hours', 'label' => 'Working Hours', 'url' => route('seller.settings.index'), 'complete' => filled($vendor->working_days) || (filled($vendor->opens_at) && filled($vendor->closes_at)), 'weight' => 3, 'mandatory' => false],

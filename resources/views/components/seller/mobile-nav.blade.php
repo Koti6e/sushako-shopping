@@ -4,7 +4,7 @@
         ['label' => 'Orders', 'route' => 'seller.orders.index', 'active' => ['seller.orders.*'], 'icon' => 'fa-solid fa-receipt'],
         ['label' => 'Products', 'route' => 'seller.products.index', 'active' => ['seller.products.*'], 'icon' => 'fa-solid fa-box'],
         ['label' => 'Earnings', 'route' => 'seller.earnings.index', 'active' => ['seller.earnings.*', 'seller.settlements.*'], 'icon' => 'fa-solid fa-chart-line'],
-        ['label' => 'More', 'route' => 'seller.settings.index', 'active' => ['seller.settings.*', 'seller.shipping.*', 'seller.customers.*', 'seller.support.*', 'seller.store-profile', 'seller.plans.*'], 'icon' => 'fa-solid fa-ellipsis'],
+        ['label' => 'More', 'route' => 'seller.settings.index', 'active' => ['seller.settings.*', 'seller.shipping.*', 'seller.customers.*', 'seller.support.*', 'seller.store-profile'], 'icon' => 'fa-solid fa-ellipsis'],
     ];
 @endphp
 

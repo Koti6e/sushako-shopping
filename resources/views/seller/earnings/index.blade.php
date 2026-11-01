@@ -16,15 +16,13 @@
             @endforeach
         </div>
 
-        @if (($vendor->current_plan ?: 'free') === 'free')
-            <section class="seller-panel">
-                <h2>Platform Fee: Rs 1 per product sold</h2>
-                <div class="seller-key-value"><span>Products Sold</span><strong>{{ number_format($summary['products_sold']) }}</strong></div>
-                <div class="seller-key-value"><span>Platform Fee Rate</span><strong>Rs 1 per product</strong></div>
-                <div class="seller-key-value"><span>Sushako Platform Fee</span><strong>Rs {{ number_format($summary['platform_fees']) }}</strong></div>
-                <div class="seller-key-value"><span>Your Net Earnings</span><strong>Rs {{ number_format($summary['net_earnings']) }}</strong></div>
-            </section>
-        @endif
+        <section class="seller-panel">
+            <h2>Platform Fee: 2% marketplace commission</h2>
+            <div class="seller-key-value"><span>Products Sold</span><strong>{{ number_format($summary['products_sold']) }}</strong></div>
+            <div class="seller-key-value"><span>Platform Fee Rate</span><strong>2%</strong></div>
+            <div class="seller-key-value"><span>Sushako Platform Fee</span><strong>Rs {{ number_format($summary['platform_fees']) }}</strong></div>
+            <div class="seller-key-value"><span>Your Net Earnings</span><strong>Rs {{ number_format($summary['net_earnings']) }}</strong></div>
+        </section>
 
         <section class="seller-table-card">
             <h2>Transactions</h2>

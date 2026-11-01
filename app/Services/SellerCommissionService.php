@@ -5,35 +5,31 @@ namespace App\Services;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\SellerLedgerEntry;
-use App\Models\SellerPlan;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\DB;
 
 class SellerCommissionService
 {
-    public const CALCULATION_VERSION = 'plan-v2';
+    public const CALCULATION_VERSION = 'marketplace-commission-v1';
 
     public function preview(Vendor $vendor, ?Product $product, int $sellingPrice, int $quantity = 1): array
     {
         $quantity = max(0, $quantity);
         $base = max(0, $sellingPrice) * $quantity;
-        $plan = $this->planSnapshot($vendor);
-        $planCode = $this->effectivePlan($vendor);
-        $isUnitFee = in_array($planCode, [Vendor::PLAN_FREE, Vendor::PLAN_STARTER], true);
-        $commission = $isUnitFee ? min($base, $quantity) : 0;
+        $commission = (int) round($base * 0.02);
 
         return [
             'base' => $base,
-            'type' => $isUnitFee ? 'flat_per_unit' : 'none',
-            'rate' => $isUnitFee ? 1 : 0,
+            'type' => 'percentage',
+            'rate' => 2,
             'commission' => $commission,
-            'platform_fee_per_unit' => $isUnitFee ? 1 : 0,
+            'platform_fee_per_unit' => $quantity > 0 ? (int) round($commission / $quantity) : 0,
             'platform_fee_total' => $commission,
             'eligible_quantity' => $quantity,
             'seller_earning' => max(0, $base - $commission),
-            'source' => $planCode === Vendor::PLAN_FREE ? 'free_plan_unit_commission' : $planCode.'_plan',
-            'seller_plan' => $planCode,
-            'seller_plan_version' => (int) ($plan['plan_version'] ?? 1),
+            'source' => 'marketplace_commission',
+            'seller_plan' => null,
+            'seller_plan_version' => 1,
             'commission_calculation_version' => self::CALCULATION_VERSION,
             'payment_gateway_fee' => 0,
         ];
@@ -85,18 +81,12 @@ class SellerCommissionService
 
     public function zeroCommission(Vendor $vendor): bool
     {
-        return $this->effectivePlan($vendor) === Vendor::PLAN_PREMIUM;
+        return false;
     }
 
     public function effectivePlan(Vendor $vendor): string
     {
-        $plan = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: $vendor->selected_plan);
-
-        if ($plan !== Vendor::PLAN_FREE && $vendor->plan_expires_at?->isPast() && ! $vendor->grace_ends_at?->isFuture()) {
-            return Vendor::PLAN_FREE;
-        }
-
-        return $plan;
+        return Vendor::PLAN_FREE;
     }
 
     public function effectiveRule(Vendor $vendor, ?Product $product = null): array
@@ -110,14 +100,4 @@ class SellerCommissionService
         ];
     }
 
-    private function planSnapshot(Vendor $vendor): array
-    {
-        $code = Vendor::canonicalPlan($vendor->active_plan_code ?: $vendor->current_plan ?: $vendor->selected_plan);
-        $plan = SellerPlan::query()->where('business_code', $code)->where('status', SellerPlan::STATUS_ACTIVE)->first();
-
-        return [
-            'business_code' => $code,
-            'plan_version' => $plan?->plan_version ?: 1,
-        ];
-    }
 }

@@ -57,7 +57,6 @@ class SellerSidebarService
                 $this->item('seller.shipping.index', 'fa-truck', 'Delivery', ['seller.shipping.*'], null, $setupComplete),
                 $this->item('seller.promotions.index', 'fa-bullhorn', 'Promote Products', ['seller.promotions.*'], null, $setupComplete),
                 $this->item('seller.store-profile', 'fa-store', 'My Shop', ['seller.store-profile'], null, $setupComplete),
-                $this->item('seller.plans.index', 'fa-arrow-up-right-dots', 'Upgrade Plan', ['seller.plans.*'], null, $setupComplete),
                 $this->item('seller.settings.index', 'fa-gear', 'Settings', ['seller.settings.*'], null, $setupComplete),
             ],
         ];

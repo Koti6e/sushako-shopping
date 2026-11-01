@@ -736,7 +736,7 @@
             <h1>Set up your shop</h1>
             <p>
                 Tell us about your business, delivery preferences and policies.
-                We'll prepare your Seller OS and activate your Free Starter Plan.
+                We'll prepare your free Seller OS and marketplace workspace.
             </p>
         </header>
 
@@ -1315,10 +1315,9 @@
                 <div class="seller-commercial-card">
 
                     <div class="seller-commercial-row">
-                        <strong>Free Starter Plan</strong>
+                        <strong>Free seller access</strong>
                         <span>
-                            Your shop starts on the Free Plan with
-                            <span class="seller-commercial-highlight">Sushako branding</span>.
+                            Your shop receives the same free marketplace tools as every approved seller.
                         </span>
                     </div>
 
@@ -1326,9 +1325,9 @@
                         <strong>Sushako Commission</strong>
                         <span>
                             <span class="seller-commercial-highlight">
-                                ₹1 commission per applicable product/order item
+                                2% Sushako marketplace commission
                             </span>
-                            under the Free Plan according to Sushako's current commission rules.
+                            applies to successful orders.
                         </span>
                     </div>
 
@@ -1413,7 +1412,7 @@
                         <details>
                             <summary>Commission & Payment Policy</summary>
                             <p>
-                                Free Plan sellers are subject to the current ₹1 Sushako commission rule.
+                                All sellers are subject to a 2% Sushako marketplace commission.
                                 Razorpay/payment gateway charges are separate from Sushako commission.
                             </p>
                         </details>
@@ -1477,8 +1476,8 @@
                     <strong>Before you continue</strong>
 
                     <ul>
-                        <li>Your Free Starter Plan will be activated.</li>
-                        <li>Free Plan Sushako commission rules apply.</li>
+                        <li>Your free seller access will be activated.</li>
+                        <li>A 2% marketplace commission applies to successful orders.</li>
                         <li>Razorpay charges are separate for online payments.</li>
                         <li>Eligible settlements normally follow T+3–T+5 processing rules.</li>
                         <li>Bank details are required before settlement payout.</li>

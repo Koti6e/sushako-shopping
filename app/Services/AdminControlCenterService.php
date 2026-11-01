@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\SellerCategoryRequest;
-use App\Models\SellerOnboardingPayment;
 use App\Models\SellerSettlement;
 use App\Models\User;
 use App\Models\Vendor;
@@ -234,8 +233,6 @@ class AdminControlCenterService
             $this->priority('New Seller Approvals', Vendor::query()->whereIn('approval_status', [Vendor::APPROVAL_PENDING_ADMIN, Vendor::APPROVAL_SETUP_COMPLETE])->count(), route('admin.sellers.index', ['filter' => 'approval_pending']), 'Review sellers ready to publish.'),
             $this->priority('Pending Category Requests', SellerCategoryRequest::query()->where('status', SellerCategoryRequest::STATUS_PENDING)->count(), route('admin.category-requests.index'), 'Approve or reject seller marketplace categories.'),
             $this->priority('Settlement Releases', SellerSettlement::query()->whereIn('status', ['draft', 'pending_approval', 'approved'])->count(), route('admin.settlements.index'), 'Review payout batches and releases.'),
-            $this->priority('Recent Failed Payments', SellerOnboardingPayment::query()->where('status', SellerOnboardingPayment::STATUS_FAILED)->count(), route('admin.sellers.index', ['filter' => 'payment_failed']), 'Follow up seller plan payment failures.'),
-            $this->priority('Subscription Renewals', Vendor::query()->whereNotNull('plan_expires_at')->whereBetween('plan_expires_at', [now(), now()->addDays(7)])->count(), route('admin.sellers.index', ['filter' => 'expiring']), 'Plans expiring within seven days.'),
             $this->priority('Platform Alerts', Product::query()->whereHas('variants', fn ($query) => $query->whereColumn('product_variants.stock', '<=', 'products.low_stock_threshold'))->count(), route('admin.inventory.index'), 'Low stock and inventory alerts.'),
         ])->filter(fn (array $item): bool => $item['count'] > 0)->values()->all();
     }
@@ -244,7 +241,6 @@ class AdminControlCenterService
     {
         $incompleteSellers = Vendor::query()->where('onboarding_status', '!=', 'complete')->count();
         $sellersWithoutProducts = Vendor::query()->whereDoesntHave('products')->count();
-        $expiringGrowth = Vendor::query()->where('current_plan', Vendor::PLAN_GROWTH)->whereBetween('plan_expires_at', [now(), now()->addDays(7)])->count();
         $topCategory = Category::query()
             ->withCount('products')
             ->orderByDesc('products_count')
@@ -257,7 +253,6 @@ class AdminControlCenterService
         return [
             "{$incompleteSellers} sellers have not completed onboarding.",
             "{$sellersWithoutProducts} sellers have no products.",
-            "{$expiringGrowth} Growth subscriptions expire this week.",
             "{$topCategory} is the strongest category signal today.",
             'Settlement queue contains '.SellerSettlement::query()->whereIn('status', ['draft', 'pending_approval', 'approved'])->count().' pending releases.',
             User::query()->where('role', User::ROLE_CUSTOMER)->whereDate('created_at', today())->count().' customer registrations today.',

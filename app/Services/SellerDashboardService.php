@@ -36,7 +36,7 @@ class SellerDashboardService
         return [
             'gross_sales' => (float) (clone $items)->sum('gross_line_amount'),
             'total_product_units_sold' => (int) (clone $items)->sum('eligible_quantity'),
-            'platform_fee_rate' => ($vendor->current_plan ?: Vendor::PLAN_FREE) === Vendor::PLAN_FREE ? 'Rs 1 per product' : 'Zero while paid plan is active',
+            'platform_fee_rate' => '2% marketplace commission',
             'total_platform_fee' => (float) (clone $items)->sum('platform_fee_total'),
             'refunds' => (float) (clone $items)->sum('refund_amount'),
             'returns' => (float) (clone $items)->sum('return_amount'),

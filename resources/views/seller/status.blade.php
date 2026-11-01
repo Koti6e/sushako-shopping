@@ -8,7 +8,7 @@
             <dl>
                 <div><dt>Store</dt><dd>{{ $vendor->store_display_name ?: $vendor->business_name }}</dd></div>
                 <div><dt>Onboarding</dt><dd>{{ str($vendor->onboarding_status)->title() }}</dd></div>
-                <div><dt>Plan</dt><dd>{{ str($vendor->current_plan ?: 'not selected')->title() }}</dd></div>
+                <div><dt>Marketplace access</dt><dd>Free seller access</dd></div>
                 <div><dt>Payment</dt><dd>{{ str($vendor->payment_status ?: 'not started')->replace('_',' ')->title() }}</dd></div>
             </dl>
             <div class="seller-form-actions">

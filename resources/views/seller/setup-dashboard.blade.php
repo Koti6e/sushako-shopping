@@ -27,7 +27,6 @@
                         'delivery_configuration' => ['icon' => 'fa-truck-fast', 'title' => 'Delivery Setup', 'description' => 'Delivery radius, fees, and pickup location.', 'step' => 'delivery'],
                         'storefront_category' => ['icon' => 'fa-tags', 'title' => 'Categories', 'description' => 'Select your store categories.', 'step' => 'business'],
                         'first_product' => ['icon' => 'fa-box', 'title' => 'First Product', 'description' => 'Add at least one product to your catalog.', 'url' => route('seller.products.create')],
-                        'plan_activation' => ['icon' => 'fa-credit-card', 'title' => 'Choose Plan', 'description' => 'Select a seller plan to activate your store.', 'step' => 'plan'],
                     ];
                 @endphp
 

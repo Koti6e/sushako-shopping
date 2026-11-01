@@ -9,9 +9,9 @@
             <dl>
                 <div><dt>Seller name</dt><dd>{{ $vendor->owner_name ?: auth()->user()->name }}</dd></div>
                 <div><dt>Business/store</dt><dd>{{ $vendor->store_display_name ?: $vendor->business_name }}</dd></div>
-                <div><dt>Selected plan</dt><dd>{{ str($vendor->current_plan ?: $vendor->selected_plan)->title() }}</dd></div>
-                <div><dt>Activation date</dt><dd>{{ $vendor->plan_activated_at?->format('d M Y, h:i A') }}</dd></div>
-                <div><dt>Plan expiry</dt><dd>{{ $vendor->plan_expires_at?->format('d M Y') ?? 'No expiry' }}</dd></div>
+                <div><dt>Marketplace access</dt><dd>Free seller access</dd></div>
+                <div><dt>Commission</dt><dd>2% on successful orders</dd></div>
+                <div><dt>Access expiry</dt><dd>No expiry</dd></div>
                 <div><dt>Account status</dt><dd>{{ str($vendor->status)->replace('_',' ')->title() }}</dd></div>
                 <div><dt>Store status</dt><dd>{{ $vendor->store_status === \App\Models\Vendor::STORE_LIVE ? 'Live' : 'Not Live' }}</dd></div>
             </dl>

@@ -23,7 +23,7 @@
                                 <small>{{ match ($key) {
                                     'seller_agreement' => 'Review the seller agreement before publishing your storefront.',
                                     'privacy_policy' => 'Confirm that customer data is handled securely and transparently.',
-                                    'commission_policy' => 'Keep commission expectations aligned with the active plan.',
+                                    'commission_policy' => 'A 2% Sushako marketplace commission applies to successful orders.',
                                     'return_refund_policy' => 'Share clear return and refund guidance for buyers.',
                                     default => 'Policy acknowledgement',
                                 } }}</small>

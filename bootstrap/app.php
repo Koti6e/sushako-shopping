@@ -5,7 +5,6 @@ use App\Http\Middleware\EnsureCustomerHasMobile;
 use App\Http\Middleware\EnsureSellerAccountActive;
 use App\Http\Middleware\EnsureSellerHasProfile;
 use App\Http\Middleware\EnsureSellerOnboardingCompleted;
-use App\Http\Middleware\EnsureSellerPlanActivated;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ShareCookieConsent;
 use Illuminate\Foundation\Application;
@@ -33,7 +32,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'seller.active' => EnsureSellerAccountActive::class,
             'seller.onboarded' => EnsureSellerOnboardingCompleted::class,
             'seller.profile' => EnsureSellerHasProfile::class,
-            'seller.plan' => EnsureSellerPlanActivated::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request): string {
