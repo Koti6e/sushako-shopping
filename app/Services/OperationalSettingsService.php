@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Models\ShippingSetting;
+use App\Services\SellerShippingService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,22 @@ class OperationalSettingsService
             'total' => $subtotal + (int) ($shipping['amount'] ?? 0),
             'tax_lines' => $tax['lines'],
         ];
+    }
+
+    public function checkoutSummaryForAddress(array $cart, string $pincode, array $address = []): array
+    {
+        $summary = $this->checkoutSummary($cart);
+        $shipping = app(SellerShippingService::class)->calculate($cart, $pincode, $address);
+        if (collect($shipping['shipments'])->every(fn (array $shipment) => data_get($shipment, 'rule.source') === 'legacy_global_shipping')) {
+            $summary['shipping_shipments'] = $shipping['shipments'];
+            return $summary;
+        }
+        $summary['shipping'] = $shipping['amount'];
+        $summary['shipping_status'] = $shipping['status'];
+        $summary['shipping_label'] = $shipping['amount'] > 0 ? '₹'.number_format($shipping['amount']) : 'Free';
+        $summary['shipping_shipments'] = $shipping['shipments'];
+        $summary['total'] = $summary['subtotal'] - $summary['discount'] + $summary['shipping'];
+        return $summary;
     }
 
     public function taxForProduct(Product $product, int $inclusiveLineTotal): array

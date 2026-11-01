@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductVariant;
 use App\Services\AbandonedCartService;
+use App\Services\CustomerCartService;
 use App\Services\OperationalSettingsService;
 use App\Support\ProductCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,7 @@ class CartController extends Controller
     public function __construct(
         private readonly OperationalSettingsService $settings,
         private readonly AbandonedCartService $abandonedCart,
+        private readonly CustomerCartService $customerCart,
     ) {}
 
     private function cartSummary(array $cart): array
@@ -30,9 +32,21 @@ class CartController extends Controller
 
     public function show()
     {
-        $cart = session('cart', []);
+        $refresh = $this->customerCart->refresh(session('cart', []));
+        $cart = $refresh['cart'];
+        session(['cart' => $cart]);
+        $statusMessages = [];
+        if ($refresh['removed']) {
+            $statusMessages[] = 'Unavailable products were removed from your cart.';
+        }
+        if ($refresh['price_changed']) {
+            $statusMessages[] = 'A product price changed. Review the updated total before checkout.';
+        }
+        if ($refresh['stock_issues']) {
+            $statusMessages[] = 'Update quantities for products with limited availability before checkout.';
+        }
         $cartProductIds = collect($cart)->pluck('product_id')->filter()->all();
-        $recommendations = ProductCatalog::products()
+        $recommendations = ProductCatalog::marketplaceFeed(16)
             ->filter(fn (array $product): bool => $product['available'] && ! in_array($product['id'], $cartProductIds, true))
             ->sortByDesc(fn (array $product): int => (int) $product['is_best_seller'])
             ->take(4)
@@ -44,6 +58,8 @@ class CartController extends Controller
             'shippingSettings' => $this->settings->shipping(),
             'product' => ProductCatalog::featuredProduct(),
             'recommendations' => $recommendations,
+            'cartIssues' => $refresh['stock_issues'],
+            'cartRefreshStatus' => implode(' ', $statusMessages),
         ]);
     }
 
@@ -81,13 +97,17 @@ class CartController extends Controller
         $cart = session('cart', []);
         $cart[$product['slug'].'-'.$data['colour'].'-'.$data['size']] = [
             'product_id' => $productModel->id,
+            'vendor_id' => $productModel->vendor_id,
             'variant_id' => $variant->id,
             'product' => $product['name'],
+            'seller_name' => $product['seller_name'],
+            'seller_slug' => $product['seller_slug'],
             'slug' => $product['slug'],
             'colour' => $data['colour'],
             'size' => $data['size'],
             'quantity' => $data['quantity'],
             'price' => (int) ($variant->price ?: $product['selling_price']),
+            'weight_grams' => (int) ($productModel->weight_grams ?? 0),
             'image' => $product['images'][0]['path'] ?? null,
         ];
 

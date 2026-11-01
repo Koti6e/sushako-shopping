@@ -169,7 +169,7 @@ class ModuleController extends Controller
         }
 
         if ($module === 'shipping') {
-            return view('seller.simple.shipping', ['vendor' => $vendor]);
+            return app(\App\Http\Controllers\Seller\ShippingController::class)->index($request, app(\App\Services\SellerShippingService::class));
         }
 
         if ($module === 'settings') {

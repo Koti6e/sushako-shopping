@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['vendor_id', 'category_id', 'seller_storefront_category_id', 'tax_slab_id', 'name', 'slug', 'collection', 'subcategory', 'brand', 'badge', 'short_description', 'full_description', 'fabric', 'fit', 'sleeve', 'pattern', 'occasion', 'country_of_origin', 'return_policy', 'mrp', 'selling_price', 'buying_price', 'rating', 'reviews', 'is_published', 'is_new', 'is_best_seller', 'local_delivery', 'fulfillment_scope', 'sort_order', 'seller_status', 'scheduled_go_live_at', 'published_mode', 'seller_rejection_reason', 'seller_product_views', 'continue_selling_when_out_of_stock', 'product_condition', 'refurbishment_type', 'refurbishment_grade', 'condition_description', 'cosmetic_condition', 'testing_details', 'warranty_period', 'package_contents', 'weight_grams', 'length_cm', 'width_cm', 'height_cm', 'low_stock_threshold'])]
 class Product extends Model
@@ -58,6 +59,11 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function shippingOverride(): HasOne
+    {
+        return $this->hasOne(ProductShippingOverride::class);
     }
 
     public function orderItems(): HasMany
