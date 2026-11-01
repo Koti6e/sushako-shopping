@@ -3,10 +3,24 @@
     <section class="seller-content">
         @if (session('status'))<div class="status-banner">{{ session('status') }}</div>@endif
         @if ($errors->any())<div class="status-banner status-banner--error">{{ $errors->first() }}</div>@endif
+        <section class="seller-card-grid seller-card-grid--metrics" aria-label="Catalogue intelligence overview">
+            @foreach ([
+                ['label' => 'Registered sources', 'value' => $imports->count(), 'icon' => 'fa-globe'],
+                ['label' => 'Analysed sessions', 'value' => $discoverySessions->count(), 'icon' => 'fa-magnifying-glass-chart'],
+                ['label' => 'New products', 'value' => $matchCounts->get('new_product', 0), 'icon' => 'fa-sparkles'],
+                ['label' => 'Possible matches', 'value' => $matchCounts->get('possible_match', 0), 'icon' => 'fa-code-compare'],
+            ] as $metric)
+                <article class="seller-metric-card">
+                    <span class="seller-metric-card__icon"><i class="fa-solid {{ $metric['icon'] }}" aria-hidden="true"></i></span>
+                    <span>{{ $metric['label'] }}</span>
+                    <strong>{{ number_format($metric['value']) }}</strong>
+                </article>
+            @endforeach
+        </section>
         <section class="seller-panel seller-panel--wide">
-            <p class="eyebrow">Seller-controlled catalog</p>
-            <h2>Your Product. Your Price. Your Customers. Your Branding. Your Shipping.</h2>
-            <p>Verify a public HTTPS domain first. Products are never published automatically; every imported item will require review and approval.</p>
+            <p class="eyebrow">Catalogue Intelligence V2.0</p>
+            <h2>Understand your catalogue before you import it.</h2>
+            <p>Connect a public HTTPS store, review the intelligence report, then choose what enters Sushako. Discovery is bounded, seller-controlled and never auto-publishes products.</p>
             <form class="seller-form-card" method="POST" action="{{ route('seller.imports.store') }}">
                 @csrf
                 <label>Website domain
@@ -28,8 +42,27 @@
                             <button type="submit">Verify Ownership</button>
                         </form>
                     @else
-                        <p><strong>Verified.</strong> Imports use bounded asynchronous crawling and remain unpublished until you approve them.</p>
-                        <form method="POST" action="{{ route('seller.imports.start', $import) }}">@csrf<button type="submit">Start Safe Import</button></form>
+                        <p><strong>Verified.</strong> Run website intelligence first. It identifies the public platform, sitemaps, categories and extraction capabilities.</p>
+                        <div class="seller-form-actions">
+                            <form method="POST" action="{{ route('seller.imports.analyse', $import) }}">@csrf<button type="submit">Analyse Website</button></form>
+                            @if ($import->intelligenceProfile?->status === 'ready')
+                                <form method="POST" action="{{ route('seller.imports.start', $import) }}">@csrf<button type="submit">Start Discovery</button></form>
+                            @endif
+                        </div>
+                        @if ($import->intelligenceProfile)
+                            @php($profile = $import->intelligenceProfile)
+                            <section class="seller-panel seller-panel--nested" aria-label="Website intelligence report">
+                                <div class="seller-panel__heading"><div><p class="eyebrow">Intelligence report</p><h4>{{ str($profile->platform)->title() }} · {{ str($profile->status)->title() }}</h4></div><span class="status-badge">{{ $profile->analysed_at?->diffForHumans() }}</span></div>
+                                <div class="seller-fact-grid">
+                                    <span><small>Categories</small><strong>{{ number_format($profile->category_count) }}</strong></span>
+                                    <span><small>Product URLs</small><strong>{{ number_format($profile->product_url_count) }}</strong></span>
+                                    <span><small>Currency</small><strong>{{ $profile->currency ?: 'Not detected' }}</strong></span>
+                                    <span><small>Access</small><strong>{{ $profile->is_accessible ? 'Accessible' : 'Unavailable' }}</strong></span>
+                                </div>
+                                @if ($profile->limitations)<p class="status-banner status-banner--warning">{{ implode(' ', $profile->limitations) }}</p>@endif
+                                <p><strong>Capabilities:</strong> {{ collect($profile->capabilities ?: [])->filter()->keys()->map(fn ($key) => str($key)->replace('_', ' ')->title())->implode(' · ') ?: 'No capabilities confirmed yet.' }}</p>
+                            </section>
+                        @endif
                         @foreach ($import->jobs()->with('candidates')->latest()->limit(3)->get() as $job)
                             <div class="seller-import-job"><strong>Job #{{ $job->id }} · {{ str($job->status)->title() }}</strong><span>{{ $job->products_found }} found · {{ $job->products_needing_review }} need review</span>
                             @foreach ($job->candidates as $candidate)

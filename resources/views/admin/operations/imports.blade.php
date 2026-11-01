@@ -7,6 +7,18 @@
                 <p>Imported products remain seller drafts. Master-category mapping and duplicate signals require review before any customer visibility.</p>
             </div>
 
+            <div class="admin-control-metrics" aria-label="Catalogue intelligence metrics">
+                @foreach ([
+                    ['label' => 'Registered sources', 'value' => $catalogueStats['sources']],
+                    ['label' => 'Discovery sessions', 'value' => $catalogueStats['sessions']],
+                    ['label' => 'Extracted products', 'value' => $catalogueStats['extracted']],
+                    ['label' => 'Product matches', 'value' => $catalogueStats['matches']],
+                    ['label' => 'Failed sessions', 'value' => $catalogueStats['failed']],
+                ] as $metric)
+                    <article><span>{{ $metric['label'] }}</span><strong>{{ number_format($metric['value']) }}</strong></article>
+                @endforeach
+            </div>
+
             <div class="admin-enterprise-card admin-import-monitor__table">
                 <div class="admin-import-monitor__table-wrap">
                     <table>

@@ -4,6 +4,12 @@ namespace App\Services;
 
 use App\Jobs\CrawlSellerDomain;
 use App\Models\Category;
+use App\Models\CatalogueDiscoveredCategory;
+use App\Models\CatalogueDiscoverySession;
+use App\Models\CatalogueIntelligenceProfile;
+use App\Models\CatalogueExtractedProduct;
+use App\Models\CatalogueDiscoveredUrl;
+use App\Models\CatalogueProductMatch;
 use App\Models\SellerDomainImport;
 use App\Models\SellerImportCandidate;
 use App\Models\SellerImportJob;
@@ -17,6 +23,107 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class SellerDomainImportService
 {
+    public function analyse(Vendor $vendor, SellerDomainImport $import): CatalogueIntelligenceProfile
+    {
+        abort_unless($import->vendor_id === $vendor->id, 404);
+
+        $profile = CatalogueIntelligenceProfile::query()->firstOrCreate(
+            ['seller_domain_import_id' => $import->id],
+            ['profile_version' => '2.0'],
+        );
+
+        try {
+            $html = $this->fetch('https://'.$import->domain.'/');
+            if ($html === '') {
+                throw ValidationException::withMessages(['domain' => 'The website did not return a readable HTML page.']);
+            }
+
+            $sitemaps = $this->discoverSitemaps($import->domain, $html);
+            $platform = $this->detectPlatform($html);
+            $currency = $this->detectCurrency($html);
+            $categories = $this->discoverCategoryLinks($html, $import->domain);
+            $productUrls = $this->discoverProductUrlsFromSitemaps($sitemaps, $import->domain);
+            $capabilities = [
+                'sitemap' => $productUrls !== [],
+                'category_navigation' => $categories !== [],
+                'schema_product' => str_contains($html, 'application/ld+json'),
+                'opengraph' => str_contains($html, 'property="og:'),
+                'images' => true,
+                'variants' => $platform !== 'generic',
+            ];
+
+            $session = CatalogueDiscoverySession::query()->create([
+                'vendor_id' => $vendor->id,
+                'seller_domain_import_id' => $import->id,
+                'status' => 'analysed',
+                'urls_discovered' => count($productUrls),
+                'unique_urls' => count(array_unique($productUrls)),
+                'categories_discovered' => count($categories),
+                'options' => ['sitemaps' => $sitemaps],
+                'started_at' => now(),
+                'finished_at' => now(),
+            ]);
+
+            foreach ($categories as $category) {
+                CatalogueDiscoveredCategory::query()->create([
+                    'catalogue_discovery_session_id' => $session->id,
+                    'name' => $category['name'],
+                    'canonical_url' => $category['url'],
+                ]);
+            }
+
+            $profile->forceFill([
+                'platform' => $platform,
+                'status' => 'ready',
+                'is_accessible' => true,
+                'currency' => $currency,
+                'category_count' => count($categories),
+                'product_url_count' => count(array_unique($productUrls)),
+                'capabilities' => $capabilities,
+                'strategy' => ['priority' => ['schema.org', 'platform_feed', 'opengraph', 'html'], 'sitemaps' => $sitemaps],
+                'limitations' => $productUrls === [] ? ['No public product sitemap or product URLs were identified on the landing page.'] : [],
+                'analysed_at' => now(),
+                'failed_at' => null,
+                'error_message' => null,
+            ])->save();
+
+            return $profile->fresh();
+        } catch (\Throwable $exception) {
+            $profile->forceFill([
+                'status' => 'failed',
+                'is_accessible' => false,
+                'failed_at' => now(),
+                'error_message' => Str::limit($exception->getMessage(), 1000),
+            ])->save();
+
+            throw $exception;
+        }
+    }
+
+    public function matchProduct(Vendor $vendor, CatalogueExtractedProduct $extracted): CatalogueProductMatch
+    {
+        abort_unless($extracted->session?->vendor_id === $vendor->id, 404);
+
+        $query = \App\Models\Product::query()->where('vendor_id', $vendor->id);
+        $evidence = [];
+        if ($extracted->sku) {
+            $query->where(function ($inner) use ($extracted): void {
+                $inner->where('sku', $extracted->sku)->orWhere('name', $extracted->name);
+            });
+            $evidence[] = 'sku_or_name';
+        } else {
+            $query->where('name', $extracted->name);
+        }
+        $product = $query->first();
+        $outcome = $product ? 'possible_match' : 'new_product';
+        $confidence = $product && $extracted->sku ? 0.92 : ($product ? 0.55 : 0);
+
+        return CatalogueProductMatch::query()->updateOrCreate(
+            ['vendor_id' => $vendor->id, 'catalogue_extracted_product_id' => $extracted->id],
+            ['product_id' => $product?->id, 'outcome' => $outcome, 'confidence' => $confidence, 'evidence' => $evidence, 'decision' => 'pending'],
+        );
+    }
+
     public function register(Vendor $vendor, string $input): SellerDomainImport
     {
         $domain = $this->publicDomain($input);
@@ -46,7 +153,7 @@ class SellerDomainImportService
 
         if (($parts['scheme'] ?? null) !== 'https'
             || $host === ''
-            || isset($parts['user'], $parts['pass'], $parts['port'], $parts['query'], $parts['fragment'])
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || isset($parts['query']) || isset($parts['fragment'])
             || filter_var($host, FILTER_VALIDATE_IP)
             || ! preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/', $host)) {
             throw ValidationException::withMessages(['domain' => 'Enter a public HTTPS domain you control.']);
@@ -98,6 +205,9 @@ class SellerDomainImportService
     public function start(Vendor $vendor, SellerDomainImport $import): SellerImportJob
     {
         abort_unless($import->vendor_id === $vendor->id && $import->status === 'verified', 404);
+        if ($import->intelligenceProfile?->status !== 'ready') {
+            throw ValidationException::withMessages(['domain' => 'Run and review the website intelligence report before starting discovery.']);
+        }
 
         $key = hash('sha256', $vendor->id.'|'.$import->id.'|'.now()->format('Y-m-d-H'));
         $job = SellerImportJob::query()->firstOrCreate(
@@ -116,6 +226,12 @@ class SellerDomainImportService
     public function crawl(SellerImportJob $job): void
     {
         $import = $job->domainImport;
+        $session = CatalogueDiscoverySession::query()->create([
+            'vendor_id' => $job->vendor_id,
+            'seller_domain_import_id' => $import->id,
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
         $job->forceFill(['status' => 'running', 'started_at' => now(), 'error_message' => null])->save();
 
         try {
@@ -135,7 +251,33 @@ class SellerDomainImportService
                 $job->increment('pages_found');
 
                 foreach ($this->extractCandidates($html, $url, $import->domain) as $payload) {
+                    try {
+                        $payload['source_url'] = $this->safeUrl((string) ($payload['source_url'] ?? $url), $import->domain);
+                    } catch (\Throwable) {
+                        continue;
+                    }
                     $hash = hash('sha256', $payload['source_url']);
+                    $discoveredUrl = CatalogueDiscoveredUrl::query()->updateOrCreate(
+                        ['catalogue_discovery_session_id' => $session->id, 'source_hash' => $hash],
+                        ['canonical_url' => $payload['source_url'], 'status' => 'extracted'],
+                    );
+                    $extracted = CatalogueExtractedProduct::query()->updateOrCreate(
+                        ['catalogue_discovery_session_id' => $session->id, 'identity_hash' => hash('sha256', Str::lower(($payload['sku'] ?? '').'|'.($payload['name'] ?? '').'|'.$payload['source_url']))],
+                        [
+                            'catalogue_discovered_url_id' => $discoveredUrl->id,
+                            'canonical_url' => $payload['source_url'],
+                            'name' => $payload['name'] ?? null,
+                            'sku' => $payload['sku'] ?? null,
+                            'brand' => $payload['brand'] ?? null,
+                            'price' => is_numeric($payload['price'] ?? null) ? $payload['price'] : null,
+                            'availability' => $payload['availability'] ?? null,
+                            'payload' => $payload,
+                            'images' => $payload['images'] ?? [],
+                            'extracted_at' => now(),
+                            'status' => 'extracted',
+                        ],
+                    );
+                    $this->matchProduct($job->vendor, $extracted);
                     $duplicate = $this->duplicateProduct($job->vendor_id, $payload);
                     SellerImportCandidate::query()->updateOrCreate(
                         ['seller_import_job_id' => $job->id, 'source_hash' => $hash],
@@ -163,8 +305,17 @@ class SellerDomainImportService
                 'products_ready' => (int) $counts->ready, 'products_needing_review' => (int) $counts->review,
                 'finished_at' => now(),
             ])->save();
+            $session->forceFill([
+                'status' => 'completed',
+                'pages_scanned' => $pages,
+                'urls_discovered' => $session->urls()->count(),
+                'unique_urls' => $session->urls()->distinct('canonical_url')->count('canonical_url'),
+                'categories_discovered' => $session->categories()->count(),
+                'finished_at' => now(),
+            ])->save();
         } catch (\Throwable $exception) {
             $job->forceFill(['status' => 'failed', 'error_message' => Str::limit($exception->getMessage(), 1000), 'finished_at' => now()])->save();
+            $session->forceFill(['status' => 'failed', 'error_message' => Str::limit($exception->getMessage(), 1000), 'finished_at' => now()])->save();
             throw $exception;
         }
     }
@@ -206,7 +357,7 @@ class SellerDomainImportService
                     // Invalid remote media is skipped; imported products never hotlink it.
                 }
             }
-            $candidate->forceFill(['status' => 'published', 'review_notes' => trim(($candidate->review_notes ?: '').' Imported as product #'.$product->id)])->save();
+            $candidate->forceFill(['status' => 'imported_draft', 'review_notes' => trim(($candidate->review_notes ?: '').' Imported as seller draft #'.$product->id)])->save();
             return $product;
         });
     }
@@ -215,7 +366,7 @@ class SellerDomainImportService
     {
         $parts = parse_url($url);
         $host = strtolower((string) ($parts['host'] ?? ''));
-        if (($parts['scheme'] ?? '') !== 'https' || ! hash_equals($domain, $host) || isset($parts['user'], $parts['pass'], $parts['port'])) {
+        if (($parts['scheme'] ?? '') !== 'https' || ! hash_equals($domain, $host) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])) {
             throw ValidationException::withMessages(['domain' => 'The importer blocked an unsafe URL.']);
         }
         $ips = array_merge(dns_get_record($host, DNS_A) ?: [], dns_get_record($host, DNS_AAAA) ?: []);
@@ -224,6 +375,74 @@ class SellerDomainImportService
             if (! $ip || ! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) throw ValidationException::withMessages(['domain' => 'The importer blocked a restricted network address.']);
         }
         return $url;
+    }
+
+    private function detectPlatform(string $html): string
+    {
+        $lower = Str::lower($html);
+        if (str_contains($lower, 'woocommerce') || str_contains($lower, 'wp-content')) return 'woocommerce';
+        if (str_contains($lower, 'cdn.shopify.com') || str_contains($lower, 'shopify')) return 'shopify';
+        if (str_contains($lower, 'magento') || str_contains($lower, 'mage-cache')) return 'magento';
+        if (str_contains($lower, 'laravel_session') || str_contains($lower, 'laravel')) return 'laravel';
+        return 'generic';
+    }
+
+    private function detectCurrency(string $html): ?string
+    {
+        if (preg_match('/(?:currency|priceCurrency)[^A-Z]{0,20}([A-Z]{3})/i', $html, $matches)) return strtoupper($matches[1]);
+        if (str_contains($html, '₹') || str_contains(Str::lower($html), 'inr')) return 'INR';
+        if (str_contains($html, '$')) return 'USD';
+        return null;
+    }
+
+    private function discoverSitemaps(string $domain, string $html): array
+    {
+        $sitemaps = ['https://'.$domain.'/sitemap.xml', 'https://'.$domain.'/sitemap_index.xml'];
+        foreach (['sitemap', 'sitemap_index', 'product-sitemap'] as $token) {
+            if (str_contains(Str::lower($html), $token)) $sitemaps[] = 'https://'.$domain.'/'.$token.'.xml';
+        }
+        return array_values(array_unique(array_filter($sitemaps)));
+    }
+
+    private function discoverProductUrlsFromSitemaps(array $sitemaps, string $domain): array
+    {
+        $urls = [];
+        foreach ($sitemaps as $sitemap) {
+            try {
+                $xml = $this->fetchXml($this->safeUrl($sitemap, $domain));
+                foreach ($xml as $node) {
+                    $loc = trim((string) ($node->loc ?? ''));
+                    if ($loc !== '' && preg_match('/product|item|shop|catalog|p\//i', $loc)) $urls[] = $loc;
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+        return array_values(array_unique($urls));
+    }
+
+    private function discoverCategoryLinks(string $html, string $domain): array
+    {
+        $crawler = new Crawler($html, 'https://'.$domain.'/');
+        $categories = [];
+        foreach ($crawler->filter('a[href]') as $node) {
+            $name = trim(preg_replace('/\s+/', ' ', $node->textContent));
+            $href = trim($node->getAttribute('href'));
+            if ($name === '' || strlen($name) > 180 || ! preg_match('/category|collection|shop|catalog|product/i', $href.' '.$name)) continue;
+            $url = str_starts_with($href, '/') ? 'https://'.$domain.$href : $href;
+            try { $url = $this->safeUrl($url, $domain); } catch (\Throwable) { continue; }
+            $categories[$url] = ['name' => $name, 'url' => $url];
+        }
+        return array_values($categories);
+    }
+
+    private function fetchXml(string $url): \SimpleXMLElement
+    {
+        $response = Http::timeout(10)->connectTimeout(5)->withOptions(['allow_redirects' => false])->get($url);
+        if (! $response->successful() || strlen($response->body()) > 5_000_000) throw new \RuntimeException('Sitemap unavailable or oversized.');
+        $xml = @simplexml_load_string($response->body());
+        if (! $xml) throw new \RuntimeException('Malformed sitemap.');
+        return $xml;
     }
 
     private function fetch(string $url, int $redirects = 0): string
@@ -300,13 +519,10 @@ class SellerDomainImportService
             $href = trim((string) $node->getAttribute('href'));
             $lowerHref = strtolower($href);
             if ($href === '' || str_starts_with($href, '#') || str_starts_with($lowerHref, 'mailto:') || str_starts_with($lowerHref, 'tel:') || str_starts_with($lowerHref, 'javascript:')) continue;
-            try {
-                $absolute = (new Crawler('', $base))->link()->getUri();
-            } catch (\Throwable) {
-                $absolute = $href;
-            }
-            if (str_starts_with($href, '/')) $absolute = 'https://'.$domain.$href;
-            elseif (! str_starts_with($href, 'http')) $absolute = 'https://'.$domain.'/'.ltrim($href, '/');
+            if (str_starts_with($lowerHref, 'https://')) $absolute = $href;
+            elseif (str_starts_with($href, '//')) $absolute = 'https:'.$href;
+            elseif (str_starts_with($href, '/')) $absolute = 'https://'.$domain.$href;
+            else $absolute = rtrim(dirname($base), '/').'/'.ltrim($href, '/');
             $parts = parse_url($absolute);
             if (($parts['scheme'] ?? '') === 'https' && strtolower((string) ($parts['host'] ?? '')) === $domain && ! isset($links[$absolute])) $links[$absolute] = $absolute;
         }

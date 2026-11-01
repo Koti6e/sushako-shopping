@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\CatalogueDiscoverySession;
+use App\Models\CatalogueExtractedProduct;
+use App\Models\CatalogueProductMatch;
 use App\Models\Order;
+use App\Models\SellerImportJob;
 use App\Models\TaxSlab;
 use App\Models\User;
 use App\Support\ProductCatalog;
@@ -144,6 +148,33 @@ class OperationsController extends Controller
                 ->where('role', User::ROLE_CUSTOMER)
                 ->latest()
                 ->paginate(20),
+        ]);
+    }
+
+    public function importMonitor(): View
+    {
+        $jobs = SellerImportJob::query()
+            ->with(['vendor', 'domainImport'])
+            ->withCount([
+                'candidates',
+                'candidates as ready_count' => fn ($query) => $query->where('status', 'ready_for_review'),
+                'candidates as review_count' => fn ($query) => $query->where('status', 'needs_review'),
+                'candidates as duplicate_count' => fn ($query) => $query->where('status', 'duplicate'),
+                'candidates as draft_count' => fn ($query) => $query->where('status', 'imported_draft'),
+            ])
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.operations.imports', [
+            'jobs' => $jobs,
+            'catalogueStats' => [
+                'sources' => \App\Models\SellerDomainImport::query()->count(),
+                'sessions' => CatalogueDiscoverySession::query()->count(),
+                'extracted' => CatalogueExtractedProduct::query()->count(),
+                'matches' => CatalogueProductMatch::query()->count(),
+                'failed' => CatalogueDiscoverySession::query()->where('status', 'failed')->count(),
+            ],
         ]);
     }
 

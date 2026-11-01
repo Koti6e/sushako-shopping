@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Models\SellerDomainImport;
 use App\Models\SellerImportCandidate;
+use App\Models\CatalogueDiscoverySession;
+use App\Models\CatalogueProductMatch;
 use App\Services\SellerDomainImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +21,16 @@ class DomainImportController extends Controller
         return view('seller.imports.index', [
             'vendor' => $vendor,
             'imports' => $vendor->domainImports()->latest()->get(),
+            'discoverySessions' => CatalogueDiscoverySession::query()->where('vendor_id', $vendor->id)->latest()->limit(10)->get(),
+            'matchCounts' => CatalogueProductMatch::query()->where('vendor_id', $vendor->id)->selectRaw("outcome, count(*) as aggregate")->groupBy('outcome')->pluck('aggregate', 'outcome'),
         ]);
+    }
+
+    public function analyse(Request $request, SellerDomainImport $import, SellerDomainImportService $imports): RedirectResponse
+    {
+        $imports->analyse($request->attributes->get('vendor'), $import);
+
+        return to_route('seller.imports.index')->with('status', 'Website intelligence report refreshed. Review it before starting discovery.');
     }
 
     public function store(Request $request, SellerDomainImportService $imports): RedirectResponse

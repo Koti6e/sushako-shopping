@@ -145,6 +145,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'active', 'role:supe
     Route::delete('/products/{slug}', [AdminProductController::class, 'destroy'])->name('products.destroy');
     Route::delete('/product-images/{image}', [AdminProductController::class, 'destroyImage'])->name('product-images.destroy');
     Route::get('/inventory', [OperationsController::class, 'inventory'])->name('inventory.index');
+    Route::get('/imports', [OperationsController::class, 'importMonitor'])->name('imports.index');
     Route::get('/orders', [OperationsController::class, 'orders'])->name('orders.index');
     Route::get('/orders/labels/dashboard', [ShippingLabelController::class, 'index'])->name('shipping-labels.index');
     Route::post('/orders/labels/bulk', [ShippingLabelController::class, 'bulk'])->name('shipping-labels.bulk');
@@ -270,6 +271,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller.profile'])
         Route::get('/imports', [DomainImportController::class, 'index'])->name('imports.index');
         Route::post('/imports', [DomainImportController::class, 'store'])->name('imports.store');
         Route::post('/imports/{import}/verify', [DomainImportController::class, 'verify'])->name('imports.verify');
+        Route::post('/imports/{import}/analyse', [DomainImportController::class, 'analyse'])->name('imports.analyse');
         Route::post('/imports/{import}/start', [DomainImportController::class, 'start'])->name('imports.start');
         Route::post('/imports/candidates/{candidate}/approve', [DomainImportController::class, 'approve'])->name('imports.candidates.approve');
         Route::post('/imports/candidates/{candidate}/publish', [DomainImportController::class, 'publish'])->name('imports.candidates.publish');

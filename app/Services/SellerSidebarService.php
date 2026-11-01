@@ -50,7 +50,7 @@ class SellerSidebarService
             'Seller OS' => [
                 $this->item('seller.dashboard', 'fa-gauge-high', 'Dashboard', ['seller.dashboard']),
                 $this->item('seller.products.index', 'fa-box', 'Products', ['seller.products.*'], null, $setupComplete),
-                $this->item('seller.imports.index', 'fa-globe', 'Import From Website', ['seller.imports.*'], null, $setupComplete),
+                $this->item('seller.imports.index', 'fa-wand-magic-sparkles', 'Catalogue Intelligence', ['seller.imports.*'], null, $setupComplete),
                 $this->item('seller.orders.index', 'fa-receipt', 'Orders', ['seller.orders.*'], $counts['orders'], $setupComplete),
                 $this->item('seller.customers.index', 'fa-users', 'Customers', ['seller.customers.*'], null, $setupComplete),
                 $this->item('seller.earnings.index', 'fa-chart-line', 'Earnings / Settlements', ['seller.earnings.*', 'seller.settlements.*'], $counts['settlements'], $setupComplete),
