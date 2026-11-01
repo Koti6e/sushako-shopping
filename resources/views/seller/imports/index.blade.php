@@ -63,6 +63,18 @@
                                 <p><strong>Capabilities:</strong> {{ collect($profile->capabilities ?: [])->filter()->keys()->map(fn ($key) => str($key)->replace('_', ' ')->title())->implode(' · ') ?: 'No capabilities confirmed yet.' }}</p>
                             </section>
                         @endif
+                        <form class="seller-form-card" method="POST" action="{{ route('seller.imports.monitoring') }}">
+                            @csrf
+                            <input type="hidden" name="source_id" value="{{ $import->id }}">
+                            <label>Monitoring frequency
+                                <select name="frequency"><option value="disabled">Disabled</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
+                            </label>
+                            <label><input type="checkbox" name="new_products" value="1" checked> New products</label>
+                            <label><input type="checkbox" name="price_changes" value="1" checked> Price changes</label>
+                            <label><input type="checkbox" name="image_changes" value="1"> Image changes</label>
+                            <label><input type="checkbox" name="availability_changes" value="1" checked> Availability changes</label>
+                            <button type="submit">Save Monitoring</button>
+                        </form>
                         @foreach ($import->jobs()->with('candidates')->latest()->limit(3)->get() as $job)
                             <div class="seller-import-job"><strong>Job #{{ $job->id }} · {{ str($job->status)->title() }}</strong><span>{{ $job->products_found }} found · {{ $job->products_needing_review }} need review</span>
                             @foreach ($job->candidates as $candidate)
@@ -83,5 +95,38 @@
                 <article class="seller-panel"><h3>No verified domains yet</h3><p>Add your store domain to begin.</p></article>
             @endforelse
         </section>
+        @if ($discoverySessions->isNotEmpty())
+            <section class="seller-panel seller-panel--wide">
+                <div class="seller-panel__heading"><div><p class="eyebrow">Category Explorer</p><h2>Discovery sessions</h2></div></div>
+                <div class="seller-card-grid">
+                    @foreach ($discoverySessions as $session)
+                        <article class="seller-panel seller-panel--nested"><p class="eyebrow">{{ str($session->status)->title() }}</p><h3>Session #{{ $session->id }}</h3><p>{{ number_format($session->categories_discovered) }} categories · {{ number_format($session->unique_urls) }} unique URLs</p><a class="button button--secondary" href="{{ route('seller.imports.categories', $session) }}">Review categories</a></article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+        @if ($matches->isNotEmpty())
+            <section class="seller-panel seller-panel--wide">
+                <div class="seller-panel__heading"><div><p class="eyebrow">Import Centre</p><h2>Review catalogue matches</h2></div><span class="status-badge">Seller approval required</span></div>
+                <div class="seller-import-job">
+                    @foreach ($matches as $match)
+                        <details><summary>{{ $match->extractedProduct->name ?: 'Unnamed product' }} · {{ str($match->outcome)->replace('_', ' ')->title() }} · {{ number_format((float) $match->confidence * 100, 0) }}%</summary>
+                            <p>{{ $match->extractedProduct->sourceUrl?->canonical_url }}</p>
+                            @if ($match->changes)<p><strong>Changes:</strong> {{ collect($match->changes)->keys()->map(fn ($key) => str($key)->replace('_', ' ')->title())->implode(', ') }}</p>@endif
+                            <div class="seller-form-actions">
+                                @if ($match->decision === 'pending')
+                                    <form method="POST" action="{{ route('seller.imports.matches.decide', $match) }}">@csrf<input type="hidden" name="decision" value="approved"><button type="submit">Approve Review</button></form>
+                                    <form method="POST" action="{{ route('seller.imports.matches.decide', $match) }}">@csrf<input type="hidden" name="decision" value="rejected"><button type="submit" class="button button--secondary">Reject</button></form>
+                                @elseif ($match->decision === 'approved')
+                                    @if ($match->outcome === 'new_product')<form method="POST" action="{{ route('seller.imports.matches.import', $match) }}">@csrf<input type="hidden" name="action" value="import_new"><input type="number" name="category_id" placeholder="Master category ID" required><button type="submit">Import as Draft</button></form>@elseif ($match->changes && isset($match->changes['price']))<form method="POST" action="{{ route('seller.imports.matches.import', $match) }}">@csrf<input type="hidden" name="action" value="update_price"><button type="submit">Approve Price Update</button></form>@endif
+                                @endif
+                                <form method="POST" action="{{ route('seller.imports.enrich', $match->extractedProduct) }}">@csrf<button type="submit" class="button button--secondary">Suggest Enrichment</button></form>
+                                @if (($match->extractedProduct->images ?? []) !== [])<form method="POST" action="{{ route('seller.imports.images.process', $match->extractedProduct) }}">@csrf<button type="submit" class="button button--secondary">Prepare Images</button></form>@endif
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            </section>
+        @endif
     </section>
 </x-layouts.seller>

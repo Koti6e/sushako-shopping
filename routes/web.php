@@ -273,8 +273,16 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller.profile'])
         Route::post('/imports/{import}/verify', [DomainImportController::class, 'verify'])->name('imports.verify');
         Route::post('/imports/{import}/analyse', [DomainImportController::class, 'analyse'])->name('imports.analyse');
         Route::post('/imports/{import}/start', [DomainImportController::class, 'start'])->name('imports.start');
+        Route::post('/imports/monitoring', [DomainImportController::class, 'monitoring'])->name('imports.monitoring');
+        Route::get('/imports/sessions/{session}/categories', [DomainImportController::class, 'categories'])->name('imports.categories');
+        Route::post('/imports/sessions/{session}/categories', [DomainImportController::class, 'selectCategories'])->name('imports.categories.select');
         Route::post('/imports/candidates/{candidate}/approve', [DomainImportController::class, 'approve'])->name('imports.candidates.approve');
         Route::post('/imports/candidates/{candidate}/publish', [DomainImportController::class, 'publish'])->name('imports.candidates.publish');
+        Route::post('/imports/matches/{match}/decision', [DomainImportController::class, 'decide'])->name('imports.matches.decide');
+        Route::post('/imports/matches/{match}/import', [DomainImportController::class, 'importMatch'])->name('imports.matches.import');
+        Route::post('/imports/products/{product}/enrich', [DomainImportController::class, 'enrich'])->name('imports.enrich');
+        Route::post('/imports/enrichment/{suggestion}/approve', [DomainImportController::class, 'approveEnrichment'])->name('imports.enrichment.approve');
+        Route::post('/imports/products/{product}/image', [DomainImportController::class, 'processImage'])->name('imports.images.process');
         Route::get('/reports', [SellerModuleController::class, 'generic'])->defaults('module', 'reports')->name('reports.index');
         Route::get('/store-profile', [SellerModuleController::class, 'generic'])->defaults('module', 'store_profile')->name('store-profile');
         Route::put('/store-profile', [SellerModuleController::class, 'updateStoreProfile'])->name('store-profile.update');

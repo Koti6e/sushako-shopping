@@ -10,6 +10,11 @@ use App\Models\CatalogueIntelligenceProfile;
 use App\Models\CatalogueExtractedProduct;
 use App\Models\CatalogueDiscoveredUrl;
 use App\Models\CatalogueProductMatch;
+use App\Models\CatalogueImportBatch;
+use App\Models\CatalogueImportItem;
+use App\Models\CatalogueImageAsset;
+use App\Models\CatalogueEnrichmentSuggestion;
+use App\Models\CatalogueMonitoringRun;
 use App\Models\SellerDomainImport;
 use App\Models\SellerImportCandidate;
 use App\Models\SellerImportJob;
@@ -24,6 +29,117 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class SellerDomainImportService
 {
+    public function selectCategories(Vendor $vendor, CatalogueDiscoverySession $session, array $selected, array $excluded = []): void
+    {
+        abort_unless($session->vendor_id === $vendor->id, 404);
+        if (array_intersect($selected, $excluded) !== []) throw ValidationException::withMessages(['categories' => 'A category cannot be selected and excluded at the same time.']);
+        $allowed = $session->categories()->whereIn('id', array_unique([...$selected, ...$excluded]))->pluck('id')->all();
+        abort_unless(count($allowed) === count(array_unique([...$selected, ...$excluded])), 422);
+        $session->categories()->update(['selected' => false, 'excluded' => false]);
+        $session->categories()->whereIn('id', $selected)->update(['selected' => true, 'excluded' => false]);
+        $session->categories()->whereIn('id', $excluded)->update(['selected' => false, 'excluded' => true]);
+        $session->forceFill(['options' => [...($session->options ?: []), 'selection_saved_at' => now()->toIso8601String()]])->save();
+    }
+
+    public function decideMatch(Vendor $vendor, CatalogueProductMatch $match, string $decision, ?string $notes = null): CatalogueProductMatch
+    {
+        abort_unless($match->vendor_id === $vendor->id, 404);
+        abort_unless(in_array($decision, ['approved', 'rejected', 'held', 'pending'], true), 422);
+        return tap($match)->forceFill(['decision' => $decision, 'review_notes' => $notes ?: $match->review_notes])->save();
+    }
+
+    public function importMatch(Vendor $vendor, CatalogueProductMatch $match, string $action, ?int $categoryId = null): \App\Models\Product
+    {
+        abort_unless($match->vendor_id === $vendor->id, 404);
+        abort_unless($match->decision === 'approved', 422);
+        if (! in_array($action, ['import_new', 'update_price'], true)) throw ValidationException::withMessages(['action' => 'This import action is not available yet.']);
+        $extracted = $match->extractedProduct;
+        $payload = $extracted->payload ?: [];
+        if ($action === 'update_price') {
+            abort_unless($match->product_id, 422);
+            if ($extracted->price === null) throw ValidationException::withMessages(['price' => 'The source did not provide a valid price.']);
+            $product = DB::transaction(function () use ($match, $extracted): \App\Models\Product {
+                $product = $match->product()->lockForUpdate()->firstOrFail();
+                $product->forceFill(['selling_price' => (int) round((float) $extracted->price)])->save();
+                return $product;
+            });
+        } else {
+            abort_unless($categoryId && Category::query()->whereKey($categoryId)->where('is_master', true)->where('is_active', true)->exists(), 422);
+            $existing = \App\Models\Product::query()->where('vendor_id', $vendor->id)->where('name', $extracted->name)->first();
+            if ($existing) throw ValidationException::withMessages(['product' => 'A seller product with this name already exists. Review the possible match instead.']);
+            $product = DB::transaction(fn (): \App\Models\Product => \App\Models\Product::query()->create([
+                'vendor_id' => $vendor->id,
+                'category_id' => $categoryId,
+                'name' => Str::limit(strip_tags((string) $extracted->name), 180, ''),
+                'slug' => Str::slug($extracted->name ?: 'imported-product').'-'.Str::lower(Str::random(6)),
+                'brand' => $extracted->brand,
+                'short_description' => Str::limit(strip_tags((string) data_get($payload, 'description', '')), 500),
+                'full_description' => strip_tags((string) data_get($payload, 'description', '')),
+                'mrp' => (int) round((float) ($extracted->price ?? 0)),
+                'selling_price' => (int) round((float) ($extracted->price ?? 0)),
+                'seller_status' => \App\Models\Product::SELLER_STATUS_DRAFT,
+                'is_published' => false,
+                'product_condition' => 'new',
+                'package_contents' => 'Imported from seller website',
+            ]));
+        }
+        $batch = CatalogueImportBatch::query()->create(['vendor_id' => $vendor->id, 'catalogue_discovery_session_id' => $extracted->catalogue_discovery_session_id, 'status' => 'completed', 'selected_count' => 1, 'imported_count' => 1]);
+        CatalogueImportItem::query()->create(['catalogue_import_batch_id' => $batch->id, 'catalogue_product_match_id' => $match->id, 'action' => $action, 'status' => 'imported', 'decided_at' => now()]);
+        $match->forceFill(['product_id' => $product->id, 'decision' => 'imported'])->save();
+        return $product;
+    }
+
+    public function suggestEnrichment(Vendor $vendor, CatalogueExtractedProduct $product): CatalogueEnrichmentSuggestion
+    {
+        abort_unless($product->session?->vendor_id === $vendor->id, 404);
+        $payload = $product->payload ?: [];
+        $fields = array_filter([
+            'brand' => $product->brand ?: null,
+            'seo_title' => $product->name ? Str::limit($product->name.' | Sushako Shopping', 60, '') : null,
+            'seo_description' => data_get($payload, 'description') ? Str::limit(strip_tags((string) data_get($payload, 'description')), 160) : null,
+            'keywords' => $product->name ? preg_split('/\s+/', Str::lower($product->name), -1, PREG_SPLIT_NO_EMPTY) : [],
+        ], fn ($value) => $value !== null && $value !== []);
+        return CatalogueEnrichmentSuggestion::query()->updateOrCreate(['catalogue_extracted_product_id' => $product->id], ['fields' => $fields, 'generated_by' => 'rules', 'status' => 'pending', 'approved_at' => null]);
+    }
+
+    public function approveEnrichment(Vendor $vendor, CatalogueEnrichmentSuggestion $suggestion): CatalogueEnrichmentSuggestion
+    {
+        abort_unless($suggestion->product?->session?->vendor_id === $vendor->id, 404);
+        $suggestion->forceFill(['status' => 'approved', 'approved_at' => now()])->save();
+        return $suggestion->fresh();
+    }
+
+    public function processImage(Vendor $vendor, CatalogueExtractedProduct $product, int $index = 0, array $settings = []): CatalogueImageAsset
+    {
+        abort_unless($product->session?->vendor_id === $vendor->id, 404);
+        $source = data_get($product->images, $index);
+        if (! is_string($source)) throw ValidationException::withMessages(['image' => 'No source image was found.']);
+        $domain = $product->session->source->domain;
+        $url = $this->safeUrl($source, $domain);
+        $response = Http::timeout(10)->connectTimeout(5)->withOptions(['allow_redirects' => false])->get($url);
+        $body = $response->body();
+        if (! $response->successful() || strlen($body) > 5_000_000 || ! str_starts_with(strtolower((string) $response->header('Content-Type')), 'image/')) throw ValidationException::withMessages(['image' => 'The source image failed validation.']);
+        $original = @getimagesizefromstring($body);
+        if (! $original || ($original[0] ?? 0) > 8000 || ($original[1] ?? 0) > 8000 || ! function_exists('imagecreatefromstring')) throw ValidationException::withMessages(['image' => 'The source image is invalid or image processing is unavailable.']);
+        $originalPath = 'catalogue-originals/'.Str::uuid().'.jpg';
+        Storage::disk('public')->put($originalPath, $body);
+        $image = @imagecreatefromstring($body);
+        $max = min(2400, max(400, (int) ($settings['max_dimension'] ?? 1200)));
+        $scale = min(1, $max / max(imagesx($image), imagesy($image)));
+        $canvas = imagecreatetruecolor(max(1, (int) round(imagesx($image) * $scale)), max(1, (int) round(imagesy($image) * $scale)));
+        imagecopyresampled($canvas, $image, 0, 0, 0, 0, imagesx($canvas), imagesy($canvas), imagesx($image), imagesy($image));
+        ob_start(); imagejpeg($canvas, null, min(95, max(40, (int) ($settings['quality'] ?? 82)))); $processedBody = ob_get_clean();
+        imagedestroy($canvas); imagedestroy($image);
+        $processedPath = 'catalogue-processed/'.Str::uuid().'.jpg';
+        Storage::disk('public')->put($processedPath, $processedBody);
+        return CatalogueImageAsset::query()->updateOrCreate(['catalogue_extracted_product_id' => $product->id, 'sort_order' => $index], ['original_path' => $originalPath, 'processed_path' => $processedPath, 'original_hash' => hash('sha256', $body), 'processed_hash' => hash('sha256', $processedBody), 'settings' => $settings, 'status' => 'processed']);
+    }
+
+    public function saveMonitoring(Vendor $vendor, SellerDomainImport $source, array $data): \App\Models\CatalogueMonitoringSetting
+    {
+        abort_unless($source->vendor_id === $vendor->id, 404);
+        return \App\Models\CatalogueMonitoringSetting::query()->updateOrCreate(['vendor_id' => $vendor->id, 'seller_domain_import_id' => $source->id], array_merge($data, ['auto_publish' => false]));
+    }
     public function analyse(Vendor $vendor, SellerDomainImport $import): CatalogueIntelligenceProfile
     {
         abort_unless($import->vendor_id === $vendor->id, 404);
